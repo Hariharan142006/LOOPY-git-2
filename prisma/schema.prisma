@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String?
+  email     String?  @unique
+  phone     String?  @unique
+  password  String
+  role      String   @default("CUSTOMER") // CUSTOMER, AGENT, ADMIN, DELIVERY
+  status    String   @default("ACTIVE") // ACTIVE, BLOCKED
+
+  // Agent/Delivery fields
+  vehicleType String?
+  currentLat  Float?
+  currentLng  Float?
+  isOnline    Boolean   @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  addresses        Address[]
+  bookings         Booking[]     @relation("CustomerBookings")
+  assignedBookings Booking[]     @relation("AgentBookings")
+  
+  // Wallet
+  walletBalance Float @default(0.0)
+  transactions  WalletTransaction[]
+  
+  reviewsWritten Review[] @relation("WrittenReviews")
+  reviewsReceived Review[] @relation("ReceivedReviews")
+}
+
+model WalletTransaction {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId // The user whose wallet is affected
+  amount      Float
+  type        String   // CREDIT, DEBIT
+  reference   String?  // Booking ID or "ADMIN_FUND"
+  description String?
+  
+  relatedUserId String? @db.ObjectId // Admin who added funds OR Agent who paid OR Customer who received
+  
+  createdAt   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
+
+model Address {
+  id        String  @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String  @db.ObjectId
+  label     String? // Home, Office
+  street    String
+  city      String
+  state     String
+  zip       String
+  lat       Float
+  lng       Float
+  
+  user      User    @relation(fields: [userId], references: [id])
+  bookings  Booking[]
+}
+
+model ScrapCategory {
+  id    String @id @default(auto()) @map("_id") @db.ObjectId
+  name  String
+  image String?
+  items ScrapItem[]
+}
+
+model ScrapItem {
+  id           String        @id @default(auto()) @map("_id") @db.ObjectId
+  categoryId   String        @db.ObjectId
+  name         String
+  description  String?
+  basePrice    Float
+  currentPrice Float
+  unit         String        @default("kg")
+  image        String?
+  
+  category     ScrapCategory @relation(fields: [categoryId], references: [id])
+  bookingItems BookingItem[]
+}
+
+model Booking {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId      String   @db.ObjectId
+  agentId     String?  @db.ObjectId
+  addressId   String   @db.ObjectId
+  
+  status      String   @default("PENDING") // PENDING, ASSIGNED, ONEWAY, ARRIVED, WEIGHED, PAID, COMPLETED, CANCELLED
+  scheduledAt DateTime
+  
+  totalAmount Float?
+  
+  // Snapshot of location in case address changes
+  pickupLat   Float
+  pickupLng   Float
+  
+  remarks     String?
+  
+  items       BookingItem[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  user        User     @relation("CustomerBookings", fields: [userId], references: [id])
+  agent       User?    @relation("AgentBookings", fields: [agentId], references: [id])
+  address     Address  @relation(fields: [addressId], references: [id])
+  
+  review      Review?
+}
+
+model BookingItem {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  bookingId   String   @db.ObjectId
+  itemId      String   @db.ObjectId
+  
+  quantity    Float    // Estimated weight
+  priceAtBooking Float // Price locked
+  
+  booking     Booking  @relation(fields: [bookingId], references: [id])
+  item        ScrapItem @relation(fields: [itemId], references: [id])
+}
+
+model Review {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  rating    Int      // 1-5
+  comment   String?
+  createdAt DateTime @default(now())
+
+  bookingId String   @unique @db.ObjectId
+  booking   Booking  @relation(fields: [bookingId], references: [id])
+
+  customerId String  @db.ObjectId
+  customer   User    @relation("WrittenReviews", fields: [customerId], references: [id])
+
+  agentId    String  @db.ObjectId
+  agent      User    @relation("ReceivedReviews", fields: [agentId], references: [id])
+}
