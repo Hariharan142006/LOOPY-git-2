@@ -1058,8 +1058,11 @@ export async function getOperationsAnalyticsAction() {
         // Peak Hours
         const hourMap = new Map<string, number>();
         allBookings.forEach(b => {
-            const hour = b.scheduledAt.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }); // 10 AM
-            hourMap.set(hour, (hourMap.get(hour) || 0) + 1);
+            // Handle potential invalid dates if any
+            if (b.scheduledAt) {
+                const hour = b.scheduledAt.toLocaleTimeString('en-US', { hour: 'numeric', hour12: true }); // 10 AM
+                hourMap.set(hour, (hourMap.get(hour) || 0) + 1);
+            }
         });
 
         const peakHours = Array.from(hourMap.entries())
@@ -1071,7 +1074,7 @@ export async function getOperationsAnalyticsAction() {
             completionRate,
             cancellationRate,
             peakHours,
-            avgPickupTime: '45m',
+            avgPickupTime: 'N/A', // Cannot calculate accurately without start/end times
             totalBookings: total
         };
     } catch (error) {
@@ -1089,6 +1092,9 @@ export async function getAgentAnalyticsAction() {
                 assignedBookings: {
                     where: { status: 'COMPLETED' },
                     select: { totalAmount: true }
+                },
+                reviewsReceived: {
+                    select: { rating: true }
                 }
             }
         });
@@ -1096,13 +1102,18 @@ export async function getAgentAnalyticsAction() {
         const agentStats = agents.map(a => {
             const pickups = a.assignedBookings.length;
             const revenue = a.assignedBookings.reduce((sum, b) => sum + (b.totalAmount || 0), 0);
+
+            // Calculate real rating
+            const totalRating = a.reviewsReceived.reduce((sum, r) => sum + r.rating, 0);
+            const avgAgentRating = a.reviewsReceived.length > 0 ? (totalRating / a.reviewsReceived.length).toFixed(1) : 'N/A';
+
             return {
                 id: a.id,
                 name: a.name || 'Unknown',
                 pickups,
                 revenue,
-                rating: 4.8,
-                onTime: '95%'
+                rating: avgAgentRating, // Real rating
+                onTime: 'N/A' // Cannot calculate without arrival timestamps
             };
         }).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
 
@@ -1112,9 +1123,15 @@ export async function getAgentAnalyticsAction() {
 
         const avgRevenue = agents.length > 0 ? totalRevenue / agents.length : 0;
 
+        // Calculate overall average rating
+        const allRatings = agents.flatMap(a => a.reviewsReceived.map(r => r.rating));
+        const overallAvgRating = allRatings.length > 0
+            ? (allRatings.reduce((a, b) => a + b, 0) / allRatings.length).toFixed(1)
+            : 0;
+
         return {
             topAgents: agentStats,
-            avgRating: 4.7,
+            avgRating: overallAvgRating,
             avgRevenue: Math.round(avgRevenue),
             totalAgents: agents.length
         };
