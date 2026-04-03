@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import DashboardLayout from '@/app/dashboard/layout';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
@@ -10,7 +11,7 @@ import { MapPin, Calendar as CalendarIcon, Truck, CheckCircle2, Clock, XCircle, 
 import { downloadInvoice } from '@/lib/invoice-utils';
 import { formatCurrency } from '@/lib/pricing';
 import { toast } from 'sonner';
-import { getUserBookingsAction } from '@/app/actions';
+import { getUserBookingsAction, cancelBookingAction } from '@/app/actions';
 
 const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }> = {
     PENDING: { label: 'Pending', color: 'bg-yellow-50 text-yellow-700 border-yellow-200', icon: Clock },
@@ -23,8 +24,10 @@ const STATUS_CONFIG: Record<string, { label: string; color: string; icon: any }>
 
 export default function HistoryPage() {
     const { user } = useAuthStore();
+    const router = useRouter();
     const [bookings, setBookings] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
+    const [isCancelling, setIsCancelling] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
         if (user?.id) {
@@ -55,14 +58,28 @@ export default function HistoryPage() {
     };
 
     const handleTrackOrder = (booking: any) => {
-        if (booking.pickupLat && booking.pickupLng) {
-            const lat = booking.pickupLat;
-            const lng = booking.pickupLng;
-            const url = `https://www.google.com/maps?q=${lat},${lng}`;
-            window.open(url, '_blank');
-            toast.success('Opening location in Google Maps');
-        } else {
-            toast.error('Location not available for this booking');
+        router.push(`/track/${booking.id}`);
+    };
+
+    const handleCancelBooking = async (bookingId: string) => {
+        if (!confirm('Are you sure you want to cancel this pickup? This action cannot be undone.')) {
+            return;
+        }
+
+        setIsCancelling((prev) => ({ ...prev, [bookingId]: true }));
+        try {
+            const res = await cancelBookingAction(bookingId);
+            if (res.success) {
+                toast.success('Pickup cancelled successfully');
+                await loadBookings(); // Refresh the list
+            } else {
+                toast.error(res.error || 'Failed to cancel pickup');
+            }
+        } catch (error) {
+            console.error('[History] Error cancelling booking:', error);
+            toast.error('An unexpected error occurred');
+        } finally {
+            setIsCancelling((prev) => ({ ...prev, [bookingId]: false }));
         }
     };
 
@@ -163,6 +180,29 @@ export default function HistoryPage() {
                                             </div>
                                         )}
 
+                                        {/* Cancel Pickup Button (Only for active non-completed/cancelled status) */}
+                                        {['PENDING', 'ASSIGNED', 'ARRIVED', 'IN_PROGRESS'].includes(booking.status) && (
+                                            <div className="mt-4 flex justify-end">
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        handleCancelBooking(booking.id);
+                                                    }}
+                                                    disabled={isCancelling[booking.id]}
+                                                    className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300 transition-colors"
+                                                >
+                                                    {isCancelling[booking.id] ? (
+                                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <XCircle className="h-4 w-4" />
+                                                    )}
+                                                    {isCancelling[booking.id] ? 'Cancelling...' : 'Cancel Pickup'}
+                                                </Button>
+                                            </div>
+                                        )}
+
                                         {booking.agent && (
                                             <div className="mt-4 rounded-lg bg-gray-50 p-3 flex items-center justify-between border border-gray-200">
                                                 <div className="flex items-center gap-3">
@@ -191,7 +231,7 @@ export default function HistoryPage() {
                                                 onClick={() => handleTrackOrder(booking)}
                                                 className="w-full sm:w-auto bg-green-600 hover:bg-green-700 text-white gap-2 shadow-sm font-medium"
                                             >
-                                                Track Live Location <ArrowRight className="h-4 w-4" />
+                                                Track Live <ArrowRight className="h-4 w-4" />
                                             </Button>
                                         </CardFooter>
                                     )}

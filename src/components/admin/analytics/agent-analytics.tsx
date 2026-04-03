@@ -110,7 +110,7 @@ export function AgentAnalytics() {
                                         </TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex items-center justify-end gap-1 text-yellow-400">
-                                                {agent.rating} <Star className="h-3 w-3 fill-yellow-400" />
+                                                {agent.rating} {agent.rating !== 'N/A' && <Star className="h-3 w-3 fill-yellow-400" />}
                                             </div>
                                         </TableCell>
                                     </TableRow>

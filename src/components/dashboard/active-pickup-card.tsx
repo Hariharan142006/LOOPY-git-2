@@ -88,17 +88,9 @@ export function ActivePickupCard({ booking }: ActivePickupCardProps) {
                             {booking.agent && (
                                 <Button
                                     className="bg-green-600 hover:bg-green-500 text-white font-bold rounded-full px-6 shadow-lg shadow-green-500/20"
-                                    onClick={() => {
-                                        const lat = booking.agent?.currentLat;
-                                        const lng = booking.agent?.currentLng;
-                                        if (lat && lng) {
-                                            window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`, '_blank');
-                                        } else {
-                                            toast.error("Agent location not available yet");
-                                        }
-                                    }}
+                                    onClick={() => router.push(`/track/${booking.id}`)}
                                 >
-                                    <MapPin className="mr-2 h-4 w-4" /> Track on Map
+                                    <MapPin className="mr-2 h-4 w-4" /> Track Live
                                 </Button>
                             )}
 

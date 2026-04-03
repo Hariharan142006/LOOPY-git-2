@@ -1,0 +1,877 @@
+%PDF-1.3
+%ºß¬à
+3 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 4 0 R
+>>
+endobj
+4 0 obj
+<<
+/Length 4102
+>>
+stream
+0.5670000000000001 w
+0 G
+BT
+/F2 32 Tf
+36.7999999999999972 TL
+0.086 0.639 0.29 rg
+217.9577952755905983 558.42543307086612 Td
+(Scrap App) Tj
+ET
+BT
+/F2 18 Tf
+20.6999999999999993 TL
+0.392 g
+155.2577952755905528 515.9057480314959321 Td
+(Deep Dive Technical Architecture) Tj
+ET
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.392 g
+190.3977952755905392 487.559291338582625 Td
+(Inch-by-Inch Codebase Analysis) Tj
+ET
+BT
+/F2 10 Tf
+11.5 TL
+0.392 g
+242.0877952755905653 76.5356692913385359 Td
+(Generated on 11/2/2026) Tj
+ET
+0.86 0.99 0.91 rg
+39.6850393700787407 785.1970866141731449 515.9055118110236435 -34.0157480314960665 re
+f
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.082 0.502 0.239 rg
+45.354330708661422 762.5199212598424765 Td
+(1. Project Root & Configuration) Tj
+ET
+BT
+/F3 10 Tf
+11.5 TL
+0.314 g
+39.6850393700787407 728.5041732283464171 Td
+(This section details the critical configuration files that power the build, database, and language settings.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 680.3151968503937042 Td
+(Core Config Files) Tj
+ET
+39.6850393700787407 674.6459055118109518 m
+555.5905511811024553 674.6459055118109518 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 651.9687401574802834 Td
+(package.json) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 637.7955118110235162 Td
+(The manifest file. It lists all dependencies \(next, react, tailwindcss, etc.\) and defines build scripts \(`dev`, `build`,) Tj
+T* (`start`, `lint`\).) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 598.1104724409448181 Td
+(tsconfig.json) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 583.9372440944881646 Td
+(TypeScript configuration. It sets strict mode to `true` \(ensuring type safety\), defines path aliases \(`@/*` ->) Tj
+T* (`./src/*`\), and configures the compiler to work with Next.js.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 544.2522047244094665 Td
+(next.config.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 530.0789763779526993 Td
+(Next.js specific configuration. Used to redirect routes, configure image optimization domains, and set) Tj
+T* (environment variables visible to the browser.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 490.3939370078739444 Td
+(tailwind.config.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 476.2207086614172908 Td
+(Tailwind CSS configuration. Defines the design system: custom colors \(primary, destructive\), fonts, and) Tj
+T* (animations. This is where the visual identity of the app is coded.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 422.3624409448818255 Td
+(Database Config) Tj
+ET
+39.6850393700787407 416.69314960629913 m
+555.5905511811024553 416.69314960629913 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 394.0159842519684616 Td
+(prisma/schema.prisma) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 379.8427559055117513 Td
+(The Source of Truth for the database. Defines models \(User, Booking, ScrapItem\) and their relationships. Prisma) Tj
+T* (generates the client client based on this file.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 340.1577165354329964 Td
+(prisma/seed.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 325.9844881889763428 Td
+(A script to populate the database with initial test data \(admin users, scrap categories\) so the app isn't empty on) Tj
+T* (fresh install.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 272.1262204724408775 Td
+(Environment) Tj
+ET
+39.6850393700787407 266.456929133858182 m
+555.5905511811024553 266.456929133858182 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 243.7797637795274568 Td
+(.env) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 229.6065354330708033 Td
+(Stores sensitive secrets like `DATABASE_URL` \(MongoDB connection string\). This file is git-ignored for security.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.588 g
+427.6226771653543892 19.8427559055116944 Td
+(Deep Dive Report - Page 1 of 4) Tj
+ET
+endstream
+endobj
+5 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 6 0 R
+>>
+endobj
+6 0 obj
+<<
+/Length 2618
+>>
+stream
+0.5670000000000001 w
+0 G
+0.86 0.99 0.91 rg
+39.6850393700787407 785.1970866141731449 515.9055118110236435 -34.0157480314960665 re
+f
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.082 0.502 0.239 rg
+45.354330708661422 762.5199212598424765 Td
+(2. Source Architecture \(src/\)) Tj
+ET
+BT
+/F3 10 Tf
+11.5 TL
+0.314 g
+39.6850393700787407 728.5041732283464171 Td
+(The `src` folder contains all application code. We follow a feature-based structure within the App Router.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 680.3151968503937042 Td
+(Library Utilities \(src/lib\)) Tj
+ET
+39.6850393700787407 674.6459055118109518 m
+555.5905511811024553 674.6459055118109518 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 651.9687401574802834 Td
+(src/lib/db.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 637.7955118110235162 Td
+(A singleton instance of the Prisma Client. It prevents multiple database connections from spawning during) Tj
+T* (hot-reloads in development.) Tj
+ET
+0.97 0.98 0.99 rg
+0.89 0.91 0.94 RG
+39.6850393700787407 598.1104724409448181 515.9055118110236435 -90.708661417322844 re
+B
+BT
+/F5 9 Tf
+10.3499999999999996 TL
+0.196 g
+51.0236220472441033 586.7718897637794271 Td
+(import { PrismaClient } from '@prisma/client';) Tj
+T* () Tj
+T* (declare global {) Tj
+T* (  var prisma: PrismaClient | undefined;) Tj
+T* (}) Tj
+T* () Tj
+T* (export const db = globalThis.prisma || new PrismaClient\(\);) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 490.3939370078739444 Td
+(src/lib/utils.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 476.2207086614172908 Td
+(Contains `cn\(\)`, a helper function that merges Tailwind classes safely. Essential for conditional styling \(e.g.,) Tj
+T* (`cn\('btn', isPrimary && 'btn-primary'\)`\).) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 436.5356692913385359 Td
+(src/lib/types.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 422.3624409448818255 Td
+(Shared TypeScript interfaces \(e.g., `AuthUser`, `ScrapItem`\) used by both frontend components and backend) Tj
+T* (actions to ensure consistency.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 382.6774015748030706 Td
+(src/lib/invoice-utils.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 368.5041732283464171 Td
+(Contains the logic to generate PDF invoices using `jspdf`. It draws the text, tables, and lines programmatically) Tj
+T* (onto a canvas and downloads it.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.588 g
+427.6226771653543892 19.8427559055116944 Td
+(Deep Dive Report - Page 2 of 4) Tj
+ET
+endstream
+endobj
+7 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 8 0 R
+>>
+endobj
+8 0 obj
+<<
+/Length 4240
+>>
+stream
+0.5670000000000001 w
+0.89 0.91 0.94 RG
+0.86 0.99 0.91 rg
+39.6850393700787407 785.1970866141731449 515.9055118110236435 -34.0157480314960665 re
+f
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.082 0.502 0.239 rg
+45.354330708661422 762.5199212598424765 Td
+(3. The App Router \(src/app\)) Tj
+ET
+BT
+/F3 10 Tf
+11.5 TL
+0.314 g
+39.6850393700787407 728.5041732283464171 Td
+(Every folder in `src/app` represents a URL route. `page.tsx` is the UI for that route.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 680.3151968503937042 Td
+(Root Layout) Tj
+ET
+39.6850393700787407 674.6459055118109518 m
+555.5905511811024553 674.6459055118109518 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 651.9687401574802834 Td
+(src/app/layout.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 637.7955118110235162 Td
+(The top-level wrapper for the entire application. It defines the `<html>` and `<body>` tags, loads fonts, and) Tj
+T* (initializes global providers \(Toast notifications, etc.\).) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 598.1104724409448181 Td
+(src/app/globals.css) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 583.9372440944881646 Td
+(Global styles. Imports Tailwind directives \(`@tailwind base`\) and defines CSS variables for the color theme.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 544.2522047244094665 Td
+(Server Actions \(The Backend\)) Tj
+ET
+39.6850393700787407 538.5829133858267141 m
+555.5905511811024553 538.5829133858267141 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 515.9057480314959321 Td
+(src/app/actions.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 501.7325196850393354 Td
+(The 'API' of the application. Contains async functions marked with `'use server'`. These run on Node.js and) Tj
+T* (interact directly with the DB.) Tj
+ET
+0.97 0.98 0.99 rg
+0.89 0.91 0.94 RG
+39.6850393700787407 462.0474803149605805 515.9055118110236435 -68.031496062992133 re
+B
+BT
+/F5 9 Tf
+10.3499999999999996 TL
+0.196 g
+51.0236220472441033 450.7088976377952463 Td
+('use server';) Tj
+T* (export async function loginAction\(email, password\) {) Tj
+T* (  const user = await db.user.findUnique\({ where: { email } }\);) Tj
+T* (  // ... verification logic) Tj
+T* (}) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 377.0081102362204319 Td
+(src/app/wallet-actions.ts) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 362.8348818897637216 Td
+(Specialized server actions for handling financial transactions \(add funds, pay customer\). Isolating this logic) Tj
+T* (ensures security and auditability.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 308.9766141732283131 Td
+(Key Routes) Tj
+ET
+39.6850393700787407 303.3073228346455608 m
+555.5905511811024553 303.3073228346455608 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 280.6301574803148924 Td
+(src/app/page.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 266.4569291338582389 Td
+(The Landing Page \(Home\). Rendered server-side for SEO. Shows the hero section and introduction.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 240.9451181102361943 Td
+(src/app/login/page.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 226.7718897637794271 Td
+(The Login-Screen. Contains the client-side form \(`src/components/auth/login-form.tsx`\) that calls `loginAction`.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 201.2600787401573825 Td
+(src/app/dashboard/page.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 187.086850393700729 Td
+(The User Dashboard. Protected route. Fetches user data server-side and passes it to the `DashboardView`) Tj
+T* (client component.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 147.4018110236219172 Td
+(src/app/admin/page.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 133.2285826771652637 Td
+(The Admin Portal. protected by role checks. Provides comprehensive management of agents, prices, and) Tj
+T* (bookings.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.588 g
+427.6226771653543892 19.8427559055116944 Td
+(Deep Dive Report - Page 3 of 4) Tj
+ET
+endstream
+endobj
+9 0 obj
+<</Type /Page
+/Parent 1 0 R
+/Resources 2 0 R
+/MediaBox [0 0 595.2799999999999727 841.8899999999999864]
+/Contents 10 0 R
+>>
+endobj
+10 0 obj
+<<
+/Length 2488
+>>
+stream
+0.5670000000000001 w
+0.89 0.91 0.94 RG
+0.86 0.99 0.91 rg
+39.6850393700787407 785.1970866141731449 515.9055118110236435 -34.0157480314960665 re
+f
+BT
+/F2 14 Tf
+16.0999999999999979 TL
+0.082 0.502 0.239 rg
+45.354330708661422 762.5199212598424765 Td
+(4. Component Architecture \(src/components\)) Tj
+ET
+BT
+/F3 10 Tf
+11.5 TL
+0.314 g
+39.6850393700787407 728.5041732283464171 Td
+(We split UI into small, reusable pieces. Components are either Server Components \(default\) or Client Components) Tj
+T* (\(`use client`\).) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 666.1419685039369369 Td
+(UI Primitives \(src/components/ui\)) Tj
+ET
+39.6850393700787407 660.4726771653542983 m
+555.5905511811024553 660.4726771653542983 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 637.7955118110235162 Td
+(button.tsx, input.tsx, card.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 623.6222834645668627 Td
+(Atomic building blocks. These are unstyled Radix primitives wrapped in our Tailwind design system. They ensure) Tj
+T* (that every button in the app looks and behaves consistently.) Tj
+ET
+BT
+/F2 12 Tf
+13.7999999999999989 TL
+0.118 0.161 0.231 rg
+39.6850393700787407 569.7640157480313974 Td
+(Feature Components) Tj
+ET
+39.6850393700787407 564.0947244094487587 m
+555.5905511811024553 564.0947244094487587 l
+S
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 541.4175590551180903 Td
+(src/components/bookings/booking-list.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 527.2443307086614368 Td
+(Displays a list of past pickups. It accepts data as props \(Pure Component\) so it can be used by both admins and) Tj
+T* (customers.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 487.559291338582625 Td
+(src/components/admin/analytics/agent-analytics.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 473.3860629921259147 Td
+(Complex client component using `recharts` to render graphs of agent performance.) Tj
+ET
+BT
+/F6 10 Tf
+11.5 TL
+0. g
+39.6850393700787407 447.8742519685038701 Td
+(src/components/dashboard/dashboard-view.tsx) Tj
+ET
+BT
+/F1 10 Tf
+11.5 TL
+0.278 0.333 0.412 rg
+56.6929133858267775 433.7010236220471597 Td
+(The main interactive hub for logged-in users. It manages local state for tabs \(Book, History, Wallet\) and) Tj
+T* (orchestrates sub-components.) Tj
+ET
+BT
+/F1 8 Tf
+9.1999999999999993 TL
+0.588 g
+427.6226771653543892 19.8427559055116944 Td
+(Deep Dive Report - Page 4 of 4) Tj
+ET
+endstream
+endobj
+1 0 obj
+<</Type /Pages
+/Kids [3 0 R 5 0 R 7 0 R 9 0 R ]
+/Count 4
+>>
+endobj
+11 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+12 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+13 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+14 0 obj
+<<
+/Type /Font
+/BaseFont /Helvetica-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+15 0 obj
+<<
+/Type /Font
+/BaseFont /Courier
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+16 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+17 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-Oblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+18 0 obj
+<<
+/Type /Font
+/BaseFont /Courier-BoldOblique
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+19 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Roman
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+20 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Bold
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+21 0 obj
+<<
+/Type /Font
+/BaseFont /Times-Italic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+22 0 obj
+<<
+/Type /Font
+/BaseFont /Times-BoldItalic
+/Subtype /Type1
+/Encoding /WinAnsiEncoding
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+23 0 obj
+<<
+/Type /Font
+/BaseFont /ZapfDingbats
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+24 0 obj
+<<
+/Type /Font
+/BaseFont /Symbol
+/Subtype /Type1
+/FirstChar 32
+/LastChar 255
+>>
+endobj
+2 0 obj
+<<
+/ProcSet [/PDF /Text /ImageB /ImageC /ImageI]
+/Font <<
+/F1 11 0 R
+/F2 12 0 R
+/F3 13 0 R
+/F4 14 0 R
+/F5 15 0 R
+/F6 16 0 R
+/F7 17 0 R
+/F8 18 0 R
+/F9 19 0 R
+/F10 20 0 R
+/F11 21 0 R
+/F12 22 0 R
+/F13 23 0 R
+/F14 24 0 R
+>>
+/XObject <<
+>>
+>>
+endobj
+25 0 obj
+<<
+/Producer (jsPDF 4.0.0)
+/CreationDate (D:20260211234438+05'30')
+>>
+endobj
+26 0 obj
+<<
+/Type /Catalog
+/Pages 1 0 R
+/OpenAction [3 0 R /FitH null]
+/PageLayout /OneColumn
+>>
+endobj
+xref
+0 27
+0000000000 65535 f 
+0000014221 00000 n 
+0000016061 00000 n 
+0000000015 00000 n 
+0000000152 00000 n 
+0000004306 00000 n 
+0000004443 00000 n 
+0000007113 00000 n 
+0000007250 00000 n 
+0000011542 00000 n 
+0000011680 00000 n 
+0000014296 00000 n 
+0000014422 00000 n 
+0000014553 00000 n 
+0000014687 00000 n 
+0000014825 00000 n 
+0000014949 00000 n 
+0000015078 00000 n 
+0000015210 00000 n 
+0000015346 00000 n 
+0000015474 00000 n 
+0000015601 00000 n 
+0000015730 00000 n 
+0000015863 00000 n 
+0000015965 00000 n 
+0000016314 00000 n 
+0000016400 00000 n 
+trailer
+<<
+/Size 27
+/Root 26 0 R
+/Info 25 0 R
+/ID [ <8E1EF4B257A772A20F6264AC827676A3> <8E1EF4B257A772A20F6264AC827676A3> ]
+>>
+startxref
+16504
+%%EOF

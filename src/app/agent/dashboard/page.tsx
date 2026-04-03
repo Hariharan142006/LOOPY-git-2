@@ -1,17 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '@/lib/store';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Truck, MapPin, Clock, Phone, Navigation, CheckCircle, Package, Loader2, User, Wallet, LogOut } from 'lucide-react';
+import { Truck, MapPin, Clock, Phone, Navigation, CheckCircle, Package, Loader2, User, Wallet, LogOut, X } from 'lucide-react';
 import Link from 'next/link';
-import { getAgentTasksAction, assignAgentToBookingAction, updateAgentLocationAction, toggleAgentOnlineAction } from '@/app/actions';
+import { getAgentTasksAction, assignAgentToBookingAction, updateAgentLocationAction, toggleAgentOnlineAction, updateBookingStatusAction } from '@/app/actions';
 import { getWalletBalanceAction } from '@/app/wallet-actions';
 import { toast } from 'sonner';
 import dynamic from 'next/dynamic';
 import { SwipeButton } from '@/components/swipe-button';
+import { IncomingOrderModal } from '@/components/incoming-order-modal';
 import { motion } from 'framer-motion';
 import { MiniTruck } from '@/components/mini-truck';
 
@@ -165,10 +166,25 @@ export default function AgentDashboard() {
     const [isLoading, setIsLoading] = useState(true);
     const [currentLocation, setCurrentLocation] = useState<{ lat: number, lng: number } | null>(null);
     const [viewMode, setViewMode] = useState<'list' | 'map'>('list');
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
     // Status State
     const [isOnline, setIsOnline] = useState(false);
     const [isStatusUpdating, setIsStatusUpdating] = useState(false);
+
+    // Incoming Order State
+    const [incomingOrder, setIncomingOrder] = useState<any | null>(null);
+    const [ignoredTaskIds, setIgnoredTaskIds] = useState<string[]>([]);
+    const ignoredTaskIdsRef = useRef<string[]>([]);
+    const isOnlineRef = useRef<boolean>(false);
+
+    useEffect(() => {
+        isOnlineRef.current = isOnline;
+    }, [isOnline]);
+
+    useEffect(() => {
+        ignoredTaskIdsRef.current = ignoredTaskIds;
+    }, [ignoredTaskIds]);
 
     // Sync local state with user prop initially
     useEffect(() => {
@@ -232,7 +248,7 @@ export default function AgentDashboard() {
                         await updateAgentLocationAction(user.id, latitude, longitude);
                     },
                     (error) => {
-                        console.error('[Agent] Location Error:', error);
+                        console.error('[Agent] Location Error:', error.code, error.message);
                     },
                     { enableHighAccuracy: true }
                 );
@@ -261,6 +277,20 @@ export default function AgentDashboard() {
             ]);
             setTasks(tasksData);
             setWalletBalance(balance);
+
+            if (isOnlineRef.current) {
+                const newAvailable = tasksData.available.find((t: any) => !ignoredTaskIdsRef.current.includes(t.id));
+                if (newAvailable) {
+                    setIncomingOrder((prev: any) => {
+                        if (!prev || prev.id !== newAvailable.id) return newAvailable;
+                        return prev;
+                    });
+                } else {
+                    setIncomingOrder(null);
+                }
+            } else {
+                setIncomingOrder(null);
+            }
         } catch (error) {
             console.error('Failed to fetch data', error);
         } finally {
@@ -281,6 +311,11 @@ export default function AgentDashboard() {
         } catch (error) {
             toast.error('Error accepting pickup');
         }
+    };
+
+    const handleRejectTask = (bookingId: string) => {
+        setIgnoredTaskIds(prev => [...prev, bookingId]);
+        setIncomingOrder(null);
     };
 
     // Redirect if not authenticated
@@ -337,24 +372,37 @@ export default function AgentDashboard() {
         );
     }
 
+    const focusedTask = tasks.accepted.length > 0 ? tasks.accepted[0] : null;
+
     return (
-        <div className="min-h-screen bg-gray-50 text-gray-900 p-4 pb-20 overflow-hidden">
+        <div className="min-h-screen bg-gray-50 text-gray-900 p-4 pb-20 overflow-hidden relative">
+            <IncomingOrderModal
+                booking={incomingOrder}
+                agentId={user?.id || ''}
+                onAccept={() => {
+                    setIncomingOrder(null);
+                    fetchTasks();
+                }}
+                onReject={handleRejectTask}
+            />
+
             <div className="space-y-6 max-w-5xl mx-auto">
-                <div className="flex items-center justify-between mb-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
                     <div>
-                        <h1 className="text-3xl font-bold tracking-tight text-gray-900">Agent Dashboard</h1>
-                        <p className="text-gray-500">Welcome back, {user?.name}</p>
+                        <h1 className="text-2xl font-black tracking-tight text-gray-900 leading-tight">Agent Dashboard</h1>
+                        <p className="text-xs font-medium text-gray-500">Welcome back, {user?.name}</p>
                     </div>
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-2">
                         <Link href="/agent/profile">
-                            <Button variant="outline" className="gap-2">
-                                <User className="h-4 w-4" />
+                            <Button variant="outline" size="sm" className="gap-1.5 h-8 text-xs font-semibold">
+                                <User className="h-3.5 w-3.5" />
                                 Profile
                             </Button>
                         </Link>
                         <Button
                             variant="outline"
-                            className="gap-2 text-red-600 border-red-200 hover:bg-red-50 hover:text-red-700 hover:border-red-300"
+                            size="sm"
+                            className="gap-1.5 h-8 text-xs font-semibold text-red-600 border-red-100 hover:bg-red-50"
                             onClick={async () => {
                                 if (user?.id) {
                                     await toggleAgentOnlineAction(user.id, false);
@@ -362,51 +410,55 @@ export default function AgentDashboard() {
                                 logout();
                             }}
                         >
-                            <LogOut className="h-4 w-4" />
+                            <LogOut className="h-3.5 w-3.5" />
                             Logout
                         </Button>
-                        <div className="w-[200px]">
-                            {/* Toggle Swipe Button in Header */}
+                        <div className="w-[140px]">
                             <SwipeButton
-                                text="Swipe Offline"
+                                text="Offline"
                                 completedText="Offline"
                                 isOnline={true}
                                 isLoading={isStatusUpdating}
                                 onComplete={() => handleToggleStatus(false)}
-                                className="h-10 text-xs"
+                                className="h-8 text-[10px]"
                             />
                         </div>
                     </div>
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-2 gap-4">
-                    <Card className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                        <div className="absolute top-0 right-0 w-20 h-20 bg-green-50 rounded-full -mr-10 -mt-10 transition-all group-hover:bg-green-100/50"></div>
-                        <CardContent className="p-6 flex flex-col items-center justify-center text-center relative z-10">
-                            <span className="text-4xl font-bold text-gray-900 mb-1">
-                                {tasks.completed.length}
-                            </span>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider font-semibold">
-                                <CheckCircle className="h-3 w-3 text-green-600" /> Completed
+                <div className="grid grid-cols-2 gap-3 mb-2">
+                    <Card className="bg-white border-gray-100 shadow-sm relative overflow-hidden group">
+                        <CardContent className="p-3 flex items-center gap-3 relative z-10">
+                            <div className="h-10 w-10 bg-green-50 rounded-xl flex items-center justify-center">
+                                <CheckCircle className="h-5 w-5 text-green-600" />
+                            </div>
+                            <div>
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Completed</p>
+                                <span className="text-xl font-black text-gray-900 leading-none">
+                                    {tasks.completed.length}
+                                </span>
                             </div>
                         </CardContent>
                     </Card>
-                    <Card className="bg-white border-gray-200 shadow-sm hover:shadow-md transition-all relative overflow-hidden group">
-                        <div className="absolute bottom-0 left-0 w-20 h-20 bg-blue-50 rounded-full -ml-10 -mb-10 transition-all group-hover:bg-blue-100/50"></div>
-                        <CardContent className="p-6 flex flex-col items-center justify-center text-center relative z-10">
-                            <span className="text-4xl font-bold text-green-600 mb-1">₹{Math.floor(walletBalance)}</span>
-                            <div className="flex items-center gap-2 text-xs text-gray-500 uppercase tracking-wider font-semibold mb-3">
-                                <Package className="h-3 w-3 text-blue-600" /> Earnings
+                    <Card className="bg-white border-gray-100 shadow-sm relative overflow-hidden group">
+                        <CardContent className="p-3 flex items-center gap-3 relative z-10">
+                            <div className="h-10 w-10 bg-blue-50 rounded-xl flex items-center justify-center">
+                                <Package className="h-5 w-5 text-blue-600" />
                             </div>
-                            <Link href="/agent/profile" className="w-full">
-                                <Button size="sm" variant="outline" className="w-full h-8 text-xs gap-1">
-                                    <Wallet className="h-3 w-3" /> View Wallet
+                            <div className="flex-1">
+                                <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Earnings</p>
+                                <span className="text-xl font-black text-green-600 leading-none">₹{Math.floor(walletBalance)}</span>
+                            </div>
+                            <Link href="/agent/profile">
+                                <Button size="icon" variant="ghost" className="h-8 w-8 rounded-full">
+                                    <Wallet className="h-4 w-4 text-gray-400" />
                                 </Button>
                             </Link>
                         </CardContent>
                     </Card>
                 </div>
+
 
                 <div className="space-y-4">
                     <div className="flex items-center justify-between">
@@ -439,17 +491,96 @@ export default function AgentDashboard() {
                             <Loader2 className="h-8 w-8 animate-spin text-green-600" />
                         </div>
                     ) : viewMode === 'map' ? (
-                        <div className="space-y-4">
-                            <AgentRouteMap
-                                agentLocation={currentLocation}
-                                tasks={[...tasks.accepted, ...tasks.available]}
-                            />
-                            <div className="grid grid-cols-2 gap-3 text-xs italic text-gray-500 px-1">
-                                <div className="flex items-center gap-1.5 font-medium">
-                                    <span className="h-2.5 w-2.5 rounded-full bg-blue-500"></span> Available
+                        <div className="space-y-4 relative">
+                            <div className="rounded-2xl overflow-hidden border border-gray-200 shadow-inner">
+                                <AgentRouteMap
+                                    agentLocation={currentLocation}
+                                    tasks={[...tasks.accepted, ...tasks.available]}
+                                    focusedTaskId={focusedTask?.id}
+                                    onTaskSelect={setSelectedTaskId}
+                                />
+                            </div>
+
+                            {selectedTaskId && (() => {
+                                const selectedTask = [...tasks.accepted, ...tasks.available].find(t => t.id === selectedTaskId);
+                                if (!selectedTask || selectedTask.status === 'COMPLETED') return null;
+
+                                return (
+                                    <div className="fixed bottom-6 left-0 right-0 z-[100] px-4 flex justify-center pointer-events-none">
+                                        <motion.div
+                                            initial={{ y: 20, opacity: 0 }}
+                                            animate={{ y: 0, opacity: 1 }}
+                                            className="w-full max-w-lg pointer-events-auto"
+                                        >
+                                            <Card className="bg-white/80 backdrop-blur-xl border-t border-white/40 shadow-[0_20px_50px_rgba(0,0,0,0.2)] rounded-3xl overflow-hidden ring-1 ring-black/5 relative">
+                                                {/* Close Button */}
+                                                <button
+                                                    onClick={() => setSelectedTaskId(null)}
+                                                    className="absolute top-4 right-2 z-10 p-1.5 rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 transition-colors shadow-sm"
+                                                >
+                                                    <X className="h-4 w-4" />
+                                                </button>
+
+                                                <CardContent className="p-4 space-y-3">
+                                                    <div className="flex justify-between items-center gap-4">
+                                                        <div className="min-w-0 pr-6">
+                                                            <div className="flex items-center gap-2 mb-0.5">
+                                                                <span className={`flex h-2 w-2 rounded-full ${selectedTask.id === focusedTask?.id ? 'bg-green-500 animate-pulse' : 'bg-blue-500'}`}></span>
+                                                                <p className={`text-[10px] font-black uppercase tracking-widest ring-1 px-1.5 py-0.5 rounded ${selectedTask.id === focusedTask?.id ? 'text-green-600 ring-green-100' : 'text-blue-600 ring-blue-100'}`}>
+                                                                    {selectedTask.id === focusedTask?.id ? 'Next Stop' : 'Selected Stop'}
+                                                                </p>
+                                                            </div>
+                                                            <h3 className="font-black text-lg text-gray-900 truncate tracking-tight">{selectedTask.user?.name}</h3>
+                                                            <p className="text-[11px] font-semibold text-gray-500 flex items-center gap-1 leading-none mt-0.5">
+                                                                <MapPin className="h-3 w-3 shrink-0" /> {selectedTask.address?.street}
+                                                            </p>
+                                                        </div>
+                                                        <a href={`tel:${selectedTask.user?.phone || ''}`} className="shrink-0">
+                                                            <Button size="icon" variant="secondary" className="h-10 w-10 rounded-2xl bg-gray-100 border-none hover:bg-green-100 hover:text-green-700 transition-all active:scale-95 shadow-sm">
+                                                                <Phone className="h-5 w-5" />
+                                                            </Button>
+                                                        </a>
+                                                    </div>
+
+                                                    {selectedTask.status === 'ASSIGNED' && (
+                                                        <SwipeButton
+                                                            onComplete={async () => {
+                                                                const res = await updateBookingStatusAction(selectedTask.id, 'ARRIVED');
+                                                                if (res.success) {
+                                                                    toast.success('Status updated to Arrived!');
+                                                                    setSelectedTaskId(null);
+                                                                    fetchTasks();
+                                                                } else {
+                                                                    toast.error('Failed to update status');
+                                                                }
+                                                            }}
+                                                            text="SWIPE TO ARRIVE"
+                                                            completedText="ARRIVED"
+                                                            isOnline={true}
+                                                            className="h-12 text-sm font-black"
+                                                        />
+                                                    )}
+
+                                                    {selectedTask.status === 'ARRIVED' && (
+                                                        <Link href={`/agent/pickup/${selectedTask.id}`} className="w-full block">
+                                                            <Button className="w-full bg-green-600 hover:bg-green-700 text-white font-bold h-12 rounded-2xl shadow-lg flex items-center justify-center gap-2">
+                                                                <Navigation className="h-5 w-5" /> START COLLECTION
+                                                            </Button>
+                                                        </Link>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
+                                        </motion.div>
+                                    </div>
+                                );
+                            })()}
+
+                            <div className="flex items-center gap-4 text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">
+                                <div className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-blue-500 shadow-sm shadow-blue-200"></span> Available
                                 </div>
-                                <div className="flex items-center gap-1.5 font-medium">
-                                    <span className="h-2.5 w-2.5 rounded-full bg-green-500"></span> Assigned (Optimized)
+                                <div className="flex items-center gap-1.5">
+                                    <span className="h-2 w-2 rounded-full bg-green-500 shadow-sm shadow-green-200 ring-2 ring-green-100"></span> Current Target
                                 </div>
                             </div>
                         </div>

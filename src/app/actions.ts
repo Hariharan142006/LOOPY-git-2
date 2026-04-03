@@ -657,6 +657,56 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
     }
 }
 
+export async function getBookingAgentLocationAction(bookingId: string) {
+    try {
+        const booking = await db.booking.findUnique({
+            where: { id: bookingId },
+            select: {
+                agentId: true,
+                status: true,
+                pickupLat: true,
+                pickupLng: true,
+                agent: {
+                    select: {
+                        currentLat: true,
+                        currentLng: true,
+                        name: true,
+                        phone: true,
+                        isOnline: true
+                    }
+                }
+            }
+        });
+
+        if (!booking || !booking.agentId) return booking;
+
+        // Fetch active bookings for this agent to calculate queue
+        const activeBookings = await db.booking.findMany({
+            where: {
+                agentId: booking.agentId,
+                status: {
+                    in: ['ASSIGNED', 'ONEWAY', 'ARRIVED', 'WEIGHED', 'PAID']
+                }
+            },
+            orderBy: {
+                updatedAt: 'asc'
+            },
+            select: { id: true, status: true }
+        });
+
+        const queuePosition = activeBookings.findIndex(b => b.id === bookingId);
+
+        return {
+            ...booking,
+            queuePosition: queuePosition >= 0 ? queuePosition : 0,
+            activeBookingsCount: activeBookings.length
+        };
+    } catch (error) {
+        console.error("Get Agent Location Error:", error);
+        return null;
+    }
+}
+
 export async function getBookingByIdAction(bookingId: string) {
     try {
         const booking = await db.booking.findUnique({

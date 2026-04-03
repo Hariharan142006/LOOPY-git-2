@@ -23,7 +23,7 @@ export function RevenueAnalytics() {
             setIsLoading(true);
             try {
                 const res = await getRevenueAnalyticsAction();
-                console.log("Revenue Analytics Data:", res);
+                // console.log("Revenue Analytics Data:", res);
                 setData(res);
             } catch (error) {
                 console.error("Failed to fetch revenue analytics", error);
@@ -104,7 +104,7 @@ export function RevenueAnalytics() {
                     </CardHeader>
                     <CardContent>
                         <div className="h-[300px]">
-                            {data.revenueByScrap.length === 0 ? (
+                            {data.revenueByScrap.filter((item: any) => item.value > 0).length === 0 ? (
                                 <div className="flex items-center justify-center h-full text-gray-400">
                                     No scrap revenue data available yet
                                 </div>
@@ -112,16 +112,16 @@ export function RevenueAnalytics() {
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
-                                            data={data.revenueByScrap}
+                                            data={data.revenueByScrap.filter((item: any) => item.value > 0)}
                                             cx="50%"
                                             cy="45%"
                                             labelLine={false}
-                                            label={({ name, percent }: any) => `${name} (${((percent || 0) * 100).toFixed(0)}%)`}
-                                            outerRadius={70}
+                                            label={({ percent }: any) => `${(percent * 100).toFixed(0)}%`}
+                                            outerRadius={80}
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {data.revenueByScrap.map((entry: any, index: number) => (
+                                            {data.revenueByScrap.filter((item: any) => item.value > 0).map((entry: any, index: number) => (
                                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                                             ))}
                                         </Pie>

@@ -1,18 +1,18 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/lib/store';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { getUserDashboardStatsAction } from '@/app/actions';
-import { Calendar, TrendingUp, Truck, MapPin, Wallet, ArrowRight, Loader2, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { getUserDashboardStatsAction, getUserActiveBookingAction } from '@/app/actions';
+import { Calendar, TrendingUp, Truck, MapPin, Wallet, ArrowRight, Loader2, AlertCircle, CheckCircle2, Navigation } from 'lucide-react';
 import Link from 'next/link';
 import { WithdrawDialog } from '@/components/dashboard/withdraw-dialog';
 import { ActivePickupCard } from '@/components/dashboard/active-pickup-card';
 import { MovingTruckBanner } from '@/components/dashboard/moving-truck-banner';
-import { getUserActiveBookingAction } from '@/app/actions';
 import { ReviewDialog } from '@/components/dashboard/review-dialog';
+import { toast } from 'sonner';
 
 interface DashboardStats {
     totalEarnings: number;
@@ -33,13 +33,9 @@ export default function DashboardPage() {
     const [stats, setStats] = useState<DashboardStats | null>(null);
     const [activeBooking, setActiveBooking] = useState<any>(null);
     const [loading, setLoading] = useState(true);
+    const prevStatusRef = useRef<string | null>(null);
 
     useEffect(() => {
-        // Check if user is present OR wait for potential hydration
-        // Since we are using persist, we might need to wait for rehydration.
-        // A simple check is to wait for mount effect to ensure client-side rendering is established.
-        // However, if user is really null (not logged in), we should redirect.
-        // Zustand persist usually loads synchrounously from localStorage if available, but let's be safe.
         const checkAuth = () => {
             const stored = localStorage.getItem('auth-storage');
             if (!user && !stored) {
@@ -49,7 +45,6 @@ export default function DashboardPage() {
 
         checkAuth();
 
-
         const fetchStats = async () => {
             if (user?.id) {
                 const [data, booking] = await Promise.all([
@@ -57,6 +52,18 @@ export default function DashboardPage() {
                     getUserActiveBookingAction(user.id)
                 ]);
                 setStats(data);
+
+                if (booking) {
+                    // Check for status change to ONEWAY
+                    if (prevStatusRef.current && prevStatusRef.current !== 'ONEWAY' && booking.status === 'ONEWAY') {
+                        toast.success("Great news! Your agent has started the ride.", {
+                            description: "Track the live location on your dashboard now.",
+                            duration: 5000,
+                        });
+                    }
+                    prevStatusRef.current = booking.status;
+                }
+
                 setActiveBooking(booking);
             }
             setLoading(false);
@@ -81,6 +88,29 @@ export default function DashboardPage() {
 
     return (
         <div className="space-y-8 pb-10 animate-in fade-in duration-500">
+            {/* Live Ride Notification Banner */}
+            {activeBooking?.status === 'ONEWAY' && (
+                <div className="bg-green-600 rounded-3xl p-6 text-white shadow-xl shadow-green-500/20 relative overflow-hidden group cursor-pointer"
+                    onClick={() => router.push(`/track/${activeBooking.id}`)}>
+                    <div className="relative z-10 flex flex-col md:flex-row items-center justify-between gap-4">
+                        <div className="flex items-center gap-4">
+                            <div className="h-12 w-12 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md">
+                                <Navigation className="h-6 w-6 animate-pulse" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-black uppercase tracking-tight">Live Ride Active</h2>
+                                <p className="text-sm font-bold text-green-50 opacity-90">Your agent is on the way. Track live location now.</p>
+                            </div>
+                        </div>
+                        <Button className="bg-white text-green-600 hover:bg-green-50 font-black rounded-full px-8 shadow-sm group-hover:scale-105 transition-transform">
+                            TRACK NOW
+                        </Button>
+                    </div>
+                    {/* Decorative Background Elements */}
+                    <div className="absolute top-0 right-0 h-32 w-32 bg-white/10 rounded-full -mr-16 -mt-16 pointer-events-none" />
+                    <div className="absolute bottom-0 left-0 h-24 w-24 bg-white/5 rounded-full -ml-8 -mb-8 pointer-events-none" />
+                </div>
+            )}
 
             {/* Header */}
             <div>

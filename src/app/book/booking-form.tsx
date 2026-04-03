@@ -200,8 +200,13 @@ export default function BookingForm({ items }: BookingFormProps) {
                     }
                 },
                 (error) => {
-                    console.error("Geolocation error:", error);
-                    toast.error("Location access denied or unavailable.");
+                    console.error("Geolocation error:", error.code, error.message);
+                    const messages: Record<number, string> = {
+                        1: "Location permission denied. Please allow access in your browser settings.",
+                        2: "Location unavailable. Please try again or pick from the map.",
+                        3: "Location request timed out. Please try again.",
+                    };
+                    toast.error(messages[error.code] || "Could not detect location.");
                     setIsLocating(false);
                 },
                 { enableHighAccuracy: true }

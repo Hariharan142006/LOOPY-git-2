@@ -108,27 +108,6 @@ export function OperationsAnalytics() {
                     </CardContent>
                 </Card>
 
-                <Card className="border-white/10 bg-white/5">
-                    <CardHeader>
-                        <CardTitle className="text-white">Operational Health Efficiency</CardTitle>
-                        <CardDescription>Multi-dimensional performance score</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <RadarChart cx="50%" cy="50%" outerRadius="80%" data={efficiencyMetrics}>
-                                    <PolarGrid stroke="rgba(255,255,255,0.2)" />
-                                    <PolarAngleAxis dataKey="subject" tick={{ fill: '#9ca3af', fontSize: 12 }} />
-                                    <PolarRadiusAxis angle={30} domain={[0, 150]} tick={{ fill: '#9ca3af' }} />
-                                    <Radar name="ScrapFlow" dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.6} />
-                                    <Tooltip
-                                        contentStyle={{ backgroundColor: '#1f2937', borderColor: 'rgba(255,255,255,0.1)', color: '#fff' }}
-                                    />
-                                </RadarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     );
