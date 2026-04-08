@@ -15,11 +15,12 @@ interface AgentDetailViewProps {
     isOpen: boolean;
     onClose: () => void;
     agent: any;
+    availableFleets?: any[];
     onUpdate: (agentId: string, updates: any) => Promise<void>;
     onAddFunds: (agentId: string, amount: number) => Promise<void>;
 }
 
-export function AgentDetailView({ isOpen, onClose, agent, onUpdate, onAddFunds }: AgentDetailViewProps) {
+export function AgentDetailView({ isOpen, onClose, agent, availableFleets = [], onUpdate, onAddFunds }: AgentDetailViewProps) {
     const [fundAmount, setFundAmount] = useState('');
     const [isFunding, setIsFunding] = useState(false);
 
@@ -110,6 +111,29 @@ export function AgentDetailView({ isOpen, onClose, agent, onUpdate, onAddFunds }
                                     }`}>
                                     Account: {agent.status || 'ACTIVE'}
                                 </Badge>
+                            </div>
+                        </div>
+
+                        <div className="space-y-4">
+                            <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">Fleet Assignment</h3>
+                            <div className="flex flex-col gap-2">
+                                <select
+                                    className="flex h-10 w-full rounded-md border border-white/20 bg-transparent px-3 py-2 text-sm text-white focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-green-500"
+                                    value={agent.fleetDetails?.id || "Unassigned"}
+                                    onChange={(e) => onUpdate(agent.id, { fleetId: e.target.value })}
+                                >
+                                    <option value="Unassigned" className="text-black">Unassigned</option>
+                                    {agent.fleetDetails && !availableFleets.find(f => f.id === agent.fleetDetails.id) && (
+                                        <option value={agent.fleetDetails.id} className="text-black">
+                                            ★ {agent.fleetDetails.name} ({agent.fleetDetails.licensePlate})
+                                        </option>
+                                    )}
+                                    {availableFleets.map(f => (
+                                        <option key={f.id} value={f.id} className="text-black">
+                                            {f.name} ({f.licensePlate}) - {f.vehicleType}
+                                        </option>
+                                    ))}
+                                </select>
                             </div>
                         </div>
                     </div>

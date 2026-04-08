@@ -34,7 +34,8 @@ export async function loginAction(email: string, password: string): Promise<{ us
 
                 role: user.role,
                 isOnline: user.isOnline ?? false,
-                status: user.status
+                status: user.status,
+                vehicleType: user.vehicleType ?? undefined
             }
         };
     } catch (error) {
@@ -187,7 +188,7 @@ export async function registerUserAction(data: { name: string; email: string; ph
 
 // --- Agent Management Actions ---
 
-export async function createAgentAction(data: { name: string; email: string; phone: string; password: string }): Promise<{ success: boolean; error?: string }> {
+export async function createAgentAction(data: { name: string; email: string; phone: string; password: string; vehicleName?: string; vehiclePlate?: string; vehicleType?: string; capacityKg?: number }): Promise<{ success: boolean; error?: string }> {
     try {
         // Check existing
         const existing = await db.user.findFirst({
@@ -203,8 +204,7 @@ export async function createAgentAction(data: { name: string; email: string; pho
             return { success: false, error: "User with this email or phone already exists" };
         }
 
-        // Create Agent
-        await db.user.create({
+        const newUser = await db.user.create({
             data: {
                 name: data.name,
                 email: data.email,
@@ -215,6 +215,39 @@ export async function createAgentAction(data: { name: string; email: string; pho
                 status: 'ACTIVE'
             }
         });
+
+        if (data.vehicleName && data.vehiclePlate && data.vehicleType) {
+            // Check if plate already exists
+            const existingFleet = await db.fleetVehicle.findUnique({ where: { licensePlate: data.vehiclePlate } });
+            
+            if (existingFleet) {
+                // If it already exists, just assign it to this agent
+                await db.fleetVehicle.update({
+                    where: { id: existingFleet.id },
+                    data: { agentId: newUser.id }
+                });
+                await db.user.update({
+                    where: { id: newUser.id },
+                    data: { vehicleType: existingFleet.vehicleType }
+                });
+            } else {
+                // Create new fleet vehicle
+                const newFleet = await db.fleetVehicle.create({
+                    data: {
+                        name: data.vehicleName,
+                        licensePlate: data.vehiclePlate,
+                        vehicleType: data.vehicleType,
+                        capacityKg: data.capacityKg ? Number(data.capacityKg) : undefined,
+                        status: 'ACTIVE',
+                        agentId: newUser.id
+                    }
+                });
+                await db.user.update({
+                    where: { id: newUser.id },
+                    data: { vehicleType: newFleet.vehicleType }
+                });
+            }
+        }
 
         return { success: true };
     } catch (error) {
@@ -237,7 +270,8 @@ export async function getAgentsAction(): Promise<AuthUser[]> {
                     select: {
                         status: true
                     }
-                }
+                },
+                assignedVehicles: true
             }
         });
 
@@ -249,6 +283,13 @@ export async function getAgentsAction(): Promise<AuthUser[]> {
             role: agent.role,
             isOnline: agent.isOnline ?? false,
             status: agent.status,
+            vehicleType: agent.assignedVehicles?.[0]?.vehicleType || agent.vehicleType || "Unassigned",
+            fleetDetails: agent.assignedVehicles?.[0] ? {
+                id: agent.assignedVehicles[0].id,
+                name: agent.assignedVehicles[0].name,
+                licensePlate: agent.assignedVehicles[0].licensePlate,
+                vehicleType: agent.assignedVehicles[0].vehicleType
+            } : undefined,
             walletBalance: agent.walletBalance || 0,
             city: 'Unknown', // Placeholder, or fetch from address if agents have addresses
             totalPickups: agent.assignedBookings.filter((b: any) => b.status === 'COMPLETED').length,
@@ -257,6 +298,51 @@ export async function getAgentsAction(): Promise<AuthUser[]> {
     } catch (error) {
         console.error("Get Agents Error:", error);
         return [];
+    }
+}
+
+export async function getAvailableFleetsAction() {
+    try {
+        return await db.fleetVehicle.findMany({
+            where: { status: 'ACTIVE' },
+            orderBy: { name: 'asc' }
+        });
+    } catch (error) {
+        console.error("Get Fleets Error:", error);
+        return [];
+    }
+}
+
+export async function updateAgentVehicleAction(agentId: string, fleetId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        // Unassign old fleets
+        await db.fleetVehicle.updateMany({
+            where: { agentId: agentId },
+            data: { agentId: null }
+        });
+
+        if (fleetId && fleetId !== 'Unassigned') {
+            const fleet = await db.fleetVehicle.findUnique({ where: { id: fleetId }});
+            if (fleet) {
+                await db.fleetVehicle.update({
+                    where: { id: fleetId },
+                    data: { agentId: agentId }
+                });
+                await db.user.update({
+                    where: { id: agentId },
+                    data: { vehicleType: fleet.vehicleType }
+                });
+            }
+        } else {
+            await db.user.update({
+                where: { id: agentId },
+                data: { vehicleType: null }
+            });
+        }
+        return { success: true };
+    } catch (error) {
+        console.error("Update Vehicle Error:", error);
+        return { success: false, error: "Failed to update fleet assignment" };
     }
 }
 
@@ -558,8 +644,50 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     return R * c;
 }
 
+async function findNearestAgent(lat: number, lng: number, maxDistanceKm: number = 100): Promise<string | null> {
+    try {
+        console.log(`[AutoAssign] Searching for agent near ${lat}, ${lng} (Radius: ${maxDistanceKm}km)`);
+        const agents = await db.user.findMany({
+            where: {
+                role: 'AGENT',
+                status: 'ACTIVE',
+                isOnline: true,
+                currentLat: { not: null },
+                currentLng: { not: null }
+            }
+        });
+
+        console.log(`[AutoAssign] Found ${agents.length} online agents with location.`);
+
+        let nearestAgentId = null;
+        let minDistance = maxDistanceKm;
+
+        for (const agent of agents) {
+            const distance = calculateDistance(lat, lng, agent.currentLat!, agent.currentLng!);
+            console.log(`[AutoAssign] Agent ${agent.name} is ${distance.toFixed(2)}km away`);
+            if (distance < minDistance) {
+                minDistance = distance;
+                nearestAgentId = agent.id;
+            }
+        }
+
+        if (nearestAgentId) {
+            console.log(`[AutoAssign] Winner: Agent ID ${nearestAgentId} at ${minDistance.toFixed(2)}km`);
+        } else {
+            console.log(`[AutoAssign] No agent found within ${maxDistanceKm}km`);
+        }
+
+        return nearestAgentId;
+    } catch (error) {
+        console.error("Find Nearest Agent Error:", error);
+        return null;
+    }
+}
+
 export async function getAgentTasksAction(agentId: string, agentLat?: number, agentLng?: number) {
     try {
+        console.log(`[FORENSIC] getAgentTasksAction called for ID: "${agentId}"`);
+        
         // Fetch bookings that are either assigned to this agent OR are PENDING (potential pool)
         // We fetch ALL pending to avoid missing those with empty strings or missing fields in Mongo
         const bookings = await db.booking.findMany({
@@ -598,22 +726,26 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
             return { ...b, distance };
         });
 
-        // 1. Available: PENDING status AND no agent assigned (null, undefined, or empty string)
+        console.log(`[AgentTasks] Total bookings fetched: ${bookings.length}`);
+        console.log(`[AgentTasks] Filtering for agentId: ${agentId}`);
+
+        // 1. Available: PENDING status AND no agent assigned
         const available = bookingsWithDistance.filter(b =>
             b.status === 'PENDING' &&
-            (!b.agentId || b.agentId === "")
+            (!b.agentId || String(b.agentId).trim() === "" || b.agentId === null)
         );
 
         // 2. Accepted: Assigned to THIS agent AND status is NOT COMPLETED or CANCELLED
-        // Note: When accepted, status usually changes to ASSIGNED or similar
         const acceptedRaw = bookingsWithDistance.filter(b =>
-            b.agentId === agentId &&
+            b.agentId && String(b.agentId) === String(agentId) &&
             !['COMPLETED', 'CANCELLED'].includes(b.status)
         );
 
+        console.log(`[AgentTasks] Found ${available.length} available, ${acceptedRaw.length} accepted`);
+
         // 3. Completed: Assigned to THIS agent AND status is COMPLETED
         const completed = bookingsWithDistance.filter(b =>
-            b.agentId === agentId &&
+            b.agentId && String(b.agentId) === String(agentId) &&
             b.status === 'COMPLETED'
         );
 
@@ -646,10 +778,23 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
             currentLng = nearest.pickupLng;
         }
 
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const todayCompleted = completed.filter(b => b.updatedAt >= today);
+        const todayEarnings = todayCompleted.reduce((acc, b) => acc + (b.totalAmount || 0), 0);
+
+        console.log(`[FORENSIC] Result for ${agentId}: ${available.length} avail, ${optimizedAccepted.length} acc, ${completed.length} comp, Today Earnings: ${todayEarnings}`);
+
         return {
             available: available.sort((a, b) => a.distance - b.distance),
             accepted: optimizedAccepted,
-            completed: completed
+            completed: completed,
+            summary: {
+                todayEarnings,
+                todayCompleted: todayCompleted.length,
+                assignedCount: optimizedAccepted.length
+            }
         };
     } catch (error) {
         console.error("Get Agent Tasks Error:", error);
@@ -782,6 +927,31 @@ export async function createBookingAction(userId: string, data: { items: { id: s
         });
 
         console.log(`[Booking] Created booking ${booking.id}`);
+
+        // AUTO-ASSIGNMENT LOGIC
+        const nearestAgentId = await findNearestAgent(data.location.lat, data.location.lng, 5);
+        if (nearestAgentId) {
+            console.log(`[AutoAssign] Assigning booking ${booking.id} to agent ${nearestAgentId}`);
+            await db.booking.update({
+                where: { id: booking.id },
+                data: {
+                    agentId: nearestAgentId,
+                    status: 'ASSIGNED'
+                }
+            });
+            // Create a notification for the agent if needed
+            await db.notification.create({
+                data: {
+                    userId: nearestAgentId,
+                    title: 'New Pickup Assigned',
+                    message: `You have been assigned a new pickup at ${data.location.address}`,
+                    type: 'SUCCESS'
+                }
+            });
+
+
+        }
+
         return { success: true, bookingId: booking.id };
     } catch (error) {
         console.error("[Booking] Create Booking Error:", error);
@@ -832,15 +1002,48 @@ export async function cancelBookingAction(bookingId: string): Promise<{ success:
     }
 }
 
+export async function deleteBookingAction(bookingId: string): Promise<{ success: boolean; error?: string }> {
+    try {
+        await db.bookingItem.deleteMany({
+            where: { bookingId: bookingId }
+        });
+        await db.walletTransaction.deleteMany({
+             where: { reference: bookingId, description: { contains: 'Payout' } }
+        });
+        await db.review.deleteMany({
+             where: { bookingId: bookingId }   
+        });
+        await db.booking.delete({
+            where: { id: bookingId }
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Delete Booking Error:", error);
+        return { success: false, error: "Failed to delete booking" };
+    }
+}
 
 export async function getUserBookingsAction(userId: string) {
     try {
         const bookings = await db.booking.findMany({
             where: { userId: userId },
             include: {
-                agent: true,
+                agent: {
+                    select: {
+                        id: true,
+                        name: true,
+                        phone: true,
+                        currentLat: true,
+                        currentLng: true,
+                        isOnline: true
+                    }
+                },
                 address: true,
-                items: true
+                items: {
+                    include: {
+                        item: true
+                    }
+                }
             },
             orderBy: {
                 createdAt: 'desc'
@@ -1257,3 +1460,278 @@ export async function submitReviewAction(bookingId: string, rating: number, comm
 }
 
 
+export async function payBookingAction(bookingId: string, data: { items: any[], photos: string[], totalAmount: number, customerWalletId: string }) {
+    try {
+        console.log(`[PAY] Starting payment for booking ${bookingId}, amount: ${data.totalAmount}`);
+
+        const booking = await db.booking.findUnique({
+            where: { id: bookingId },
+            include: { user: true }
+        });
+
+        if (!booking) return { success: false, error: "Booking not found" };
+        if (booking.status === 'COMPLETED' || booking.status === 'PAID') return { success: false, error: "Already completed" };
+
+        // Validate items
+        if (!data.items || data.items.length === 0) {
+            return { success: false, error: "No items provided" };
+        }
+
+        // Validate totalAmount
+        const amount = parseFloat(String(data.totalAmount));
+        if (isNaN(amount) || amount <= 0) {
+            return { success: false, error: "Invalid payment amount" };
+        }
+
+        // 1. Update Booking Items with actual weights
+        console.log(`[PAY] Deleting old items for booking ${bookingId}`);
+        await db.bookingItem.deleteMany({ where: { bookingId } });
+        
+        const validItems = data.items.filter(item => item.itemId && !isNaN(parseFloat(item.weight)));
+        console.log(`[PAY] Creating ${validItems.length} booking items`);
+        if (validItems.length > 0) {
+            // Use individual create calls - createMany has known issues with Prisma+MongoDB
+            await Promise.all(validItems.map(item =>
+                db.bookingItem.create({
+                    data: {
+                        bookingId,
+                        itemId: item.itemId,
+                        quantity: parseFloat(item.weight),
+                        priceAtBooking: parseFloat(String(item.price || 0))
+                    }
+                })
+            ));
+        }
+
+        // 2. Wallet Transfer
+        console.log(`[PAY] Incrementing wallet balance for user ${booking.userId}`);
+        await db.user.update({
+            where: { id: booking.userId },
+            data: {
+                walletBalance: { increment: amount }
+            }
+        });
+
+        // Create Transaction — use ?? undefined to avoid passing null to ObjectId field
+        await db.walletTransaction.create({
+            data: {
+                userId: booking.userId,
+                amount: amount,
+                type: 'CREDIT',
+                reference: booking.id,
+                description: `Payout for Pickup #${booking.id.slice(-6).toUpperCase()}`,
+                relatedUserId: booking.agentId ?? undefined
+            }
+        });
+
+        // 3. Update Booking Status
+        await db.booking.update({
+            where: { id: bookingId },
+            data: {
+                status: 'COMPLETED',
+                totalAmount: amount
+            }
+        });
+
+        // 4. Send Notification to User
+        await db.notification.create({
+            data: {
+                userId: booking.userId,
+                title: 'Money Received! 💰',
+                message: `You received ₹${amount.toFixed(2)} for your scrap pickup.`,
+                type: 'SUCCESS'
+            }
+        });
+
+
+        console.log(`[PAY] Payment success for booking ${bookingId}`);
+        return { success: true };
+    } catch (error: any) {
+        console.error("Pay Booking Error:", error?.message || error);
+        return { success: false, error: error?.message || "Failed to process payment" };
+    }
+}
+
+
+
+export async function proximityAlertAction(bookingId: string, distance: number) {
+    try {
+        const booking = await db.booking.findUnique({
+            where: { id: bookingId },
+            include: { user: true }
+        });
+        if (!booking) return { success: false };
+
+        if (distance < 10) { // If within 10 meters, notify
+             await db.notification.create({
+                data: {
+                    userId: booking.userId,
+                    title: 'Agent is Arriving! 📍',
+                    message: `Your Loopy agent is only ${distance.toFixed(0)}m away.`,
+                    type: 'INFO'
+                }
+            });
+
+        }
+        return { success: true };
+
+    } catch (error) {
+        return { success: false };
+    }
+}
+
+// --- NEW CRUD ACTIONS ---
+
+export async function createCompanyAction(data: { name: string, type: string, contactEmail?: string, contactPhone?: string }) {
+    try {
+        const company = await db.company.create({ data });
+        return { success: true, company };
+    } catch(e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function getCompaniesAction() {
+    return await db.company.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function updateCompanyAction(id: string, data: Partial<{ name: string, type: string, contactEmail: string, contactPhone: string }>) {
+    try {
+        const company = await db.company.update({ where: { id }, data });
+        return { success: true, company };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteCompanyAction(id: string) {
+    try {
+        await db.company.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function createWarehouseAction(data: { name: string, location: string, capacity?: number, lat?: number, lng?: number }) {
+    try {
+        const warehouse = await db.warehouse.create({ 
+            data: {
+                ...data,
+                capacity: data.capacity ? Number(data.capacity) : undefined,
+                lat: data.lat ? Number(data.lat) : undefined,
+                lng: data.lng ? Number(data.lng) : undefined
+            } 
+        });
+        return { success: true, warehouse };
+    } catch(e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function getWarehousesAction() {
+    return await db.warehouse.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function updateWarehouseAction(id: string, data: Partial<{ name: string, location: string, capacity: number, status: string, lat: number, lng: number }>) {
+    try {
+        const warehouse = await db.warehouse.update({ 
+            where: { id }, 
+            data: {
+                ...data,
+                capacity: data.capacity !== undefined ? Number(data.capacity) : undefined,
+                lat: data.lat !== undefined ? Number(data.lat) : undefined,
+                lng: data.lng !== undefined ? Number(data.lng) : undefined
+            } 
+        });
+        return { success: true, warehouse };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteWarehouseAction(id: string) {
+    try {
+        await db.warehouse.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function createFleetVehicleAction(data: { name: string, licensePlate: string, vehicleType: string, capacityKg?: number }) {
+    try {
+        const vehicle = await db.fleetVehicle.create({ data });
+        return { success: true, vehicle };
+    } catch(e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function getFleetVehiclesAction() {
+    return await db.fleetVehicle.findMany({ orderBy: { createdAt: 'desc' }, include: { agent: true } });
+}
+
+export async function updateFleetVehicleAction(id: string, data: Partial<{ name: string, licensePlate: string, vehicleType: string, status: string, agentId: string | null, capacityKg: number | null }>) {
+    try {
+        const vehicle = await db.fleetVehicle.update({ where: { id }, data });
+        return { success: true, vehicle };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteFleetVehicleAction(id: string) {
+    try {
+        await db.fleetVehicle.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function createLocationZoneAction(data: { name: string, region: string, lat?: number, lng?: number, radiusKm?: number }) {
+    try {
+        const zone = await db.locationZone.create({ 
+            data: {
+                ...data,
+                lat: data.lat ? Number(data.lat) : undefined,
+                lng: data.lng ? Number(data.lng) : undefined,
+                radiusKm: data.radiusKm ? Number(data.radiusKm) : undefined
+            } 
+        });
+        return { success: true, zone };
+    } catch(e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function getLocationZonesAction() {
+    return await db.locationZone.findMany({ orderBy: { createdAt: 'desc' } });
+}
+
+export async function updateLocationZoneAction(id: string, data: Partial<{ name: string, region: string, status: string, lat: number, lng: number, radiusKm: number }>) {
+    try {
+        const zone = await db.locationZone.update({ 
+            where: { id }, 
+            data: {
+                ...data,
+                lat: data.lat !== undefined ? Number(data.lat) : undefined,
+                lng: data.lng !== undefined ? Number(data.lng) : undefined,
+                radiusKm: data.radiusKm !== undefined ? Number(data.radiusKm) : undefined
+            } 
+        });
+        return { success: true, zone };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}
+
+export async function deleteLocationZoneAction(id: string) {
+    try {
+        await db.locationZone.delete({ where: { id } });
+        return { success: true };
+    } catch (e: any) {
+        return { success: false, error: e.message };
+    }
+}

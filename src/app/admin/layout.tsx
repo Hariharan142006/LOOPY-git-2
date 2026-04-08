@@ -3,7 +3,7 @@
 import { useAuthStore } from '@/lib/store';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { LayoutDashboard, Users, Settings, LogOut, Package, TrendingUp, UserCircle, BarChart3 } from 'lucide-react';
+import { LayoutDashboard, Users, Settings, LogOut, Package, TrendingUp, UserCircle, BarChart3, Truck, Building2, Warehouse, Map, MessageSquare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 export default function AdminLayout({
@@ -21,6 +21,12 @@ export default function AdminLayout({
         { href: '/admin/agents', label: 'Agents', icon: Users },
         { href: '/admin/users', label: 'Users', icon: UserCircle },
         { href: '/admin/analytics', label: 'Analytics', icon: BarChart3 },
+        { href: '/admin/fleet', label: 'Fleet Management', icon: Truck },
+        { href: '/admin/company', label: 'Company Info', icon: Building2 },
+        { href: '/admin/warehouse', label: 'Warehouse', icon: Warehouse },
+        { href: '/admin/locations', label: 'Locations', icon: Map },
+        { href: '/admin/support', label: 'User Support', icon: MessageSquare },
+        { href: '/admin/settings/referrals', label: 'Referrals', icon: Users },
         { href: '/admin/settings', label: 'Settings', icon: Settings },
     ];
 

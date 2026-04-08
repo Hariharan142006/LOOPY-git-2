@@ -6,7 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { Loader2, Package, Clock, Truck, CheckCircle, Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
-import { getAllBookingsAction, getAgentsAction, assignAgentToBookingAction, updateBookingStatusAction } from '@/app/actions';
+import { getAllBookingsAction, getAgentsAction, assignAgentToBookingAction, updateBookingStatusAction, deleteBookingAction } from '@/app/actions';
 import { RequestsTable } from '@/components/admin/pickups/requests-table';
 import { PickupDetailView } from '@/components/admin/pickups/pickup-detail-view';
 
@@ -62,6 +62,23 @@ export default function AdminPickupsPage() {
         if (!confirm('Are you sure you want to cancel this pickup?')) return;
 
         await handleUpdateBooking(bookingId, { status: 'CANCELLED' });
+    };
+
+    const handleDeleteBooking = async (bookingId: string) => {
+        if (!confirm('Are you sure you want to completely delete this pickup? This cannot be undone.')) return;
+        
+        try {
+            const result = await deleteBookingAction(bookingId);
+            if (result.success) {
+                toast.success('Pickup deleted successfully');
+                setBookings(prev => prev.filter(b => b.id !== bookingId));
+                setSelectedBooking(null);
+            } else {
+                toast.error(result.error || 'Failed to delete pickup');
+            }
+        } catch (error) {
+            toast.error('Error deleting pickup');
+        }
     };
 
     const handleUpdateBooking = async (bookingId: string, updates: any) => {
@@ -204,6 +221,7 @@ export default function AdminPickupsPage() {
                 booking={selectedBooking}
                 agents={agents}
                 onUpdate={handleUpdateBooking}
+                onDelete={handleDeleteBooking}
             />
         </div>
     );

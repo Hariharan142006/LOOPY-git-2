@@ -10,6 +10,13 @@ export type AuthUser = {
     totalPickups?: number;
     rating?: number;
     city?: string;
+    vehicleType?: string;
+    fleetDetails?: {
+        id: string;
+        name: string;
+        licensePlate: string;
+        vehicleType: string;
+    };
 };
 
 export type ScrapItemWithCategory = {

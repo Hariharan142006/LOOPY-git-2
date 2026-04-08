@@ -9,13 +9,17 @@ export const downloadInvoice = (booking: any) => {
     const date = new Date(booking.createdAt).toLocaleDateString('en-IN');
 
     // Branding & Header
-    doc.setFontSize(22);
-    doc.setTextColor(22, 163, 74); // Green-600
-    doc.text('Loopy', 14, 20);
-
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text('Instant Cash for Scrap', 14, 25);
+    try {
+        doc.addImage('/logo.png', 'PNG', 14, 10, 40, 40);
+    } catch (e) {
+        // Fallback to text if image fails
+        doc.setFontSize(22);
+        doc.setTextColor(22, 163, 74); // Green-600
+        doc.text('Loopy', 14, 20);
+        doc.setFontSize(10);
+        doc.setTextColor(100);
+        doc.text('Instant Cash for Scrap', 14, 25);
+    }
 
     doc.setFontSize(18);
     doc.setTextColor(0);

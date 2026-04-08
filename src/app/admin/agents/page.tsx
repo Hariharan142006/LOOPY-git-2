@@ -8,7 +8,7 @@ import { Label } from '@/components/ui/label';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Search, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { createAgentAction, getAgentsAction } from '@/app/actions';
+import { createAgentAction, getAgentsAction, toggleUserStatusAction, updateAgentVehicleAction, getAvailableFleetsAction } from '@/app/actions';
 import { addFundsToAgentAction } from '@/app/wallet-actions';
 import { AuthUser } from '@/lib/types';
 import { useAuthStore } from '@/lib/store';
@@ -17,6 +17,7 @@ import { AgentsTable } from '@/components/admin/agents/agents-table';
 
 export default function AgentManagementPage() {
     const [agents, setAgents] = useState<AuthUser[]>([]);
+    const [fleets, setFleets] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     // Dialogs
@@ -31,7 +32,10 @@ export default function AgentManagementPage() {
         name: '',
         email: '',
         phone: '',
-        password: ''
+        password: '',
+        vehicleName: '',
+        vehiclePlate: '',
+        vehicleType: 'Bike'
     });
 
     useEffect(() => {
@@ -41,8 +45,12 @@ export default function AgentManagementPage() {
     const loadAgents = async () => {
         setIsLoading(true);
         try {
-            const data = await getAgentsAction();
+            const [data, fleetData] = await Promise.all([
+                getAgentsAction(),
+                getAvailableFleetsAction()
+            ]);
             setAgents(data);
+            setFleets(fleetData);
         } catch (error) {
             toast.error('Failed to load agents');
         } finally {
@@ -58,7 +66,7 @@ export default function AgentManagementPage() {
             if (result.success) {
                 toast.success('Agent created successfully');
                 setIsCreateDialogOpen(false);
-                setFormData({ name: '', email: '', phone: '', password: '' });
+                setFormData({ name: '', email: '', phone: '', password: '', vehicleName: '', vehiclePlate: '', vehicleType: 'Bike' });
                 loadAgents();
             } else {
                 toast.error(result.error || 'Failed to create agent');
@@ -71,21 +79,25 @@ export default function AgentManagementPage() {
     };
 
     const handleUpdateAgent = async (agentId: string, updates: any) => {
-        // Mock update logic
-        // We'll optimistically update locally
-        // In real app, we'd call an updateAgentStatusAction(agentId, updates.status)
+        try {
+            if (updates.status) {
+                const res = await toggleUserStatusAction(agentId, updates.status);
+                if (!res.success) throw new Error(res.error || "Failed to update status");
+                toast.success(`Agent status updated to ${updates.status}`);
+            }
+            if (updates.fleetId !== undefined) {
+                const res = await updateAgentVehicleAction(agentId, updates.fleetId);
+                if (!res.success) throw new Error(res.error || "Failed to update vehicle");
+                toast.success(`Agent fleet updated`);
+                loadAgents(); // Reload to get fresh fleet details
+            }
 
-        // Check if status changed
-        if (updates.status) {
-            // We can mock the success
-            toast.success(`Agent status updated to ${updates.status}`);
-        } else {
-            toast.success("Agent updated");
-        }
-
-        setAgents(prev => prev.map(a => a.id === agentId ? { ...a, ...updates } : a));
-        if (selectedAgent?.id === agentId) {
-            setSelectedAgent(prev => prev ? { ...prev, ...updates } : null);
+            setAgents(prev => prev.map(a => a.id === agentId ? { ...a, ...updates } : a));
+            if (selectedAgent?.id === agentId) {
+                setSelectedAgent(prev => prev ? { ...prev, ...updates } : null);
+            }
+        } catch (error: any) {
+            toast.error(error.message);
         }
     };
 
@@ -169,6 +181,42 @@ export default function AgentManagementPage() {
                                     required
                                 />
                             </div>
+                            <div className="space-y-4 pt-4 border-t border-white/10">
+                                <h4 className="font-semibold text-sm text-gray-300">Agent's Vehicle Info</h4>
+                                <div className="space-y-2">
+                                    <Label htmlFor="vehicleName">Vehicle Name / Model</Label>
+                                    <Input
+                                        id="vehicleName"
+                                        placeholder="e.g. Hero Splendor Plus"
+                                        value={formData.vehicleName}
+                                        onChange={(e) => setFormData({ ...formData, vehicleName: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="vehiclePlate">License Plate</Label>
+                                    <Input
+                                        id="vehiclePlate"
+                                        placeholder="e.g. MH-12-AB-1234"
+                                        value={formData.vehiclePlate}
+                                        onChange={(e) => setFormData({ ...formData, vehiclePlate: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="vehicleType">Vehicle Type</Label>
+                                    <select 
+                                        id="vehicleType"
+                                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                                        value={formData.vehicleType}
+                                        onChange={(e) => setFormData({ ...formData, vehicleType: e.target.value })}
+                                    >
+                                        <option value="Bike">Bike</option>
+                                        <option value="Mini Truck">Mini Truck</option>
+                                        <option value="Large Truck">Large Truck</option>
+                                    </select>
+                                </div>
+                            </div>
                             <DialogFooter>
                                 <Button type="submit" className="bg-green-600 hover:bg-green-700 text-white" disabled={isSubmitting}>
                                     {isSubmitting ? (
@@ -211,6 +259,7 @@ export default function AgentManagementPage() {
                 isOpen={!!selectedAgent}
                 onClose={() => setSelectedAgent(null)}
                 agent={selectedAgent}
+                availableFleets={fleets}
                 onUpdate={handleUpdateAgent}
                 onAddFunds={handleAddFundsWrapper}
             />

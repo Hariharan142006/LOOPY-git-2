@@ -19,10 +19,11 @@ interface PickupDetailViewProps {
     onClose: () => void;
     booking: any;
     onUpdate: (bookingId: string, updates: any) => Promise<void>;
+    onDelete: (bookingId: string) => Promise<void>;
     agents: any[];
 }
 
-export function PickupDetailView({ isOpen, onClose, booking, onUpdate, agents }: PickupDetailViewProps) {
+export function PickupDetailView({ isOpen, onClose, booking, onUpdate, onDelete, agents }: PickupDetailViewProps) {
     const [status, setStatus] = useState(booking?.status || 'PENDING');
     const [agentId, setAgentId] = useState(booking?.agentId || 'unassigned');
     const [remarks, setRemarks] = useState(booking?.remarks || '');
@@ -200,13 +201,12 @@ export function PickupDetailView({ isOpen, onClose, booking, onUpdate, agents }:
                     <Button
                         variant="destructive"
                         onClick={() => {
-                            if (confirm("Are you sure you want to cancel this booking?")) {
-                                onUpdate(booking.id, { status: 'CANCELLED' });
-                                onClose();
+                            if (confirm("Are you sure you want to delete this booking completely?")) {
+                                onDelete(booking.id);
                             }
                         }}
                     >
-                        Cancel Pickup
+                        Delete Pickup
                     </Button>
                     <Button
                         onClick={handleSave}
