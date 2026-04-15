@@ -7,6 +7,7 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import { Fonts } from '../../constants/theme';
 
 export default function BookingsScreen() {
   const { user } = useAuth();
@@ -74,9 +75,9 @@ export default function BookingsScreen() {
           <View style={styles.locationIconBox}>
             <Ionicons name="location" size={14} color="#fff" />
           </View>
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.locationLabel}>Pickup Location</Text>
-            <Text style={styles.infoText}>{item.address?.street}, {item.address?.city}</Text>
+            <Text style={styles.infoText} numberOfLines={3}>{item.address?.street}, {item.address?.city}</Text>
           </View>
         </View>
         {item.totalAmount > 0 && (
@@ -134,46 +135,46 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f9fafb' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   listContainer: { padding: 20 },
-  bookingCard: { backgroundColor: '#fff', borderRadius: 20, padding: 16, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
+  bookingCard: { backgroundColor: '#fff', borderRadius: 24, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  bookingId: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
-  bookingDate: { fontSize: 12, color: '#6b7280', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 8 },
-  statusText: { fontSize: 11, fontWeight: 'bold', textTransform: 'uppercase' },
-  cardBody: { gap: 10, marginBottom: 16 },
+  bookingId: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827' },
+  bookingDate: { fontSize: 12, fontFamily: Fonts.medium, color: '#6b7280', marginTop: 2 },
+  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
+  statusText: { fontSize: 11, fontFamily: Fonts.bold, textTransform: 'uppercase' },
+  cardBody: { gap: 12, marginBottom: 16 },
   infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  locationIconBox: { width: 28, height: 28, borderRadius: 8, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
-  locationLabel: { fontSize: 10, fontWeight: '800', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.5 },
-  infoText: { fontSize: 13, fontWeight: '700', color: '#1f2937' },
+  locationIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
+  locationLabel: { fontSize: 10, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.8 },
+  infoText: { fontSize: 13, fontFamily: Fonts.semiBold, color: '#1f2937', lineHeight: 18 },
   detailsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 16, gap: 4 },
-  detailsBtnText: { fontSize: 14, fontWeight: 'bold', color: '#10b981' },
+  detailsBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: '#10b981' },
   emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827', marginTop: 20 },
-  emptySubtitle: { fontSize: 14, color: '#6b7280', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
-  bookNowBtn: { backgroundColor: '#10b981', paddingHorizontal: 30, paddingVertical: 15, borderRadius: 16, marginTop: 30 },
-  bookNowText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  emptyTitle: { fontSize: 22, fontFamily: Fonts.bold, color: '#111827', marginTop: 20 },
+  emptySubtitle: { fontSize: 14, fontFamily: Fonts.regular, color: '#6b7280', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
+  bookNowBtn: { backgroundColor: '#10b981', paddingHorizontal: 30, paddingVertical: 15, borderRadius: 18, marginTop: 30 },
+  bookNowText: { color: '#fff', fontFamily: Fonts.bold, fontSize: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
   modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
   modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#111827' },
+  modalTitle: { fontSize: 20, fontFamily: Fonts.bold, color: '#111827' },
   logisticsSection: { marginBottom: 24 },
-  sectionTitle: { fontSize: 14, fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 1 },
+  sectionTitle: { fontSize: 14, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 1 },
   porterCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#f3f4f6' },
   porterInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
   porterAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
-  porterName: { fontSize: 16, fontWeight: 'bold', color: '#111827' },
-  porterSub: { fontSize: 12, color: '#6b7280' },
+  avatarText: { color: '#fff', fontSize: 20, fontFamily: Fonts.bold },
+  porterName: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827' },
+  porterSub: { fontSize: 12, fontFamily: Fonts.regular, color: '#6b7280' },
   callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
   pendingPorterCard: { padding: 20, backgroundColor: '#fffbeb', borderRadius: 20, borderWidth: 1, borderColor: '#fef3c7', alignItems: 'center', flexDirection: 'row', gap: 12 },
-  pendingPorterText: { color: '#b45309', fontSize: 14, fontWeight: '500' },
+  pendingPorterText: { color: '#b45309', fontSize: 14, fontFamily: Fonts.medium },
   detailsSection: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingBottom: 24, marginBottom: 24 },
   itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  itemName: { fontSize: 15, color: '#111827' },
-  itemQty: { fontSize: 15, fontWeight: 'bold', color: '#111827' },
-  emptyItemsText: { color: '#6b7280', fontStyle: 'italic' },
-  locationText: { fontSize: 15, color: '#4b5563', lineHeight: 22 },
+  itemName: { fontSize: 15, fontFamily: Fonts.regular, color: '#111827' },
+  itemQty: { fontSize: 15, fontFamily: Fonts.bold, color: '#111827' },
+  emptyItemsText: { color: '#6b7280', fontStyle: 'italic', fontFamily: Fonts.regular },
+  locationText: { fontSize: 15, fontFamily: Fonts.regular, color: '#4b5563', lineHeight: 22 },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingBottom: 20 },
-  totalLabel: { fontSize: 18, fontWeight: 'bold', color: '#111827' },
-  totalVal: { fontSize: 24, fontWeight: '900', color: '#10b981' },
+  totalLabel: { fontSize: 18, fontFamily: Fonts.bold, color: '#111827' },
+  totalVal: { fontSize: 24, fontFamily: Fonts.bold, color: '#10b981' },
 });

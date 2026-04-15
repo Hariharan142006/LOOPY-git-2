@@ -4,28 +4,48 @@ import { Stack, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { AuthProvider, useAuth } from '../context/AuthContext';
 import 'react-native-reanimated';
+import * as SplashScreen from 'expo-splash-screen';
+import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 function RootLayoutNav() {
-  const { isAuthenticated, isLoading } = useAuth();
+  const { isAuthenticated, isLoading: isAuthLoading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
 
+  const [fontsLoaded, fontError] = useFonts({
+    Poppins_400Regular,
+    Poppins_500Medium,
+    Poppins_600SemiBold,
+    Poppins_700Bold,
+  });
+
   useEffect(() => {
-    if (isLoading) return;
+    if (fontError) throw fontError;
+  }, [fontError]);
+
+  useEffect(() => {
+    if (fontsLoaded && !isAuthLoading) {
+      SplashScreen.hideAsync();
+    }
+  }, [fontsLoaded, isAuthLoading]);
+
+  useEffect(() => {
+    if (isAuthLoading || !fontsLoaded) return;
 
     const inAuthGroup = segments[0] === 'login' || segments[0] === 'signup';
 
     if (!isAuthenticated && !inAuthGroup) {
-      // Redirect to login if not authenticated
       router.replace('/login');
     } else if (isAuthenticated && inAuthGroup) {
-      // Redirect to tabs if authenticated and trying to access login/signup
       router.replace('/(tabs)');
     }
-  }, [isAuthenticated, segments, router, isLoading]);
+  }, [isAuthenticated, segments, router, isAuthLoading, fontsLoaded]);
 
-  if (isLoading) {
-    return null; // Or a splash screen
+  if (isAuthLoading || !fontsLoaded) {
+    return null;
   }
 
   return (

@@ -1,79 +1,83 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Smartphone, Truck, Scale, Wallet } from "lucide-react";
+import { CalendarSearch, Truck, Wallet } from "lucide-react";
 
-const steps = [
-    {
-        icon: Smartphone,
-        title: "Book a Pickup",
-        description: "Schedule a pickup at your convenience via our app or website.",
-    },
-    {
-        icon: Truck,
-        title: "We Come to You",
-        description: "Our verified agents arrive at your doorstep on time.",
-    },
-    {
-        icon: Scale,
-        title: "Accurate Weighing",
-        description: "We use ISO-certified digital scales for precise measurement.",
-    },
-    {
-        icon: Wallet,
-        title: "Instant Payment",
-        description: "Get paid immediately via UPI or Cash before we leave.",
-    },
+const STEPS = [
+  {
+    title: "Schedule Pickup",
+    description: "Choose your scrap items and select a convenient time slot for our agent to visit your doorstep.",
+    icon: CalendarSearch,
+    color: "#3b82f6", // blue
+  },
+  {
+    title: "On-site Weighing",
+    description: "Our agent arrives and weighs your scrap using high-precision digital scales. Live rates are always applied.",
+    icon: Truck,
+    color: "#10b981", // green
+  },
+  {
+    title: "Instant Payout",
+    description: "Accept the final weight and amount. Payment is instantly credited to your Loopy wallet or bank.",
+    icon: Wallet,
+    color: "#f59e0b", // amber
+  },
 ];
 
 export function HowItWorks() {
-    return (
-        <section className="py-24 bg-black relative border-t border-white/5">
-            <div className="container mx-auto px-4">
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    whileInView={{ opacity: 1, y: 0 }}
-                    viewport={{ once: true }}
-                    className="text-center mb-16"
+  return (
+    <section id="process" className="py-24 bg-black">
+      <div className="container mx-auto px-6">
+        <div className="text-center mb-20">
+          <motion.h2 
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            className="text-4xl md:text-5xl font-extrabold text-white tracking-tight mb-4"
+          >
+            How it <span className="text-green-500">Works</span>
+          </motion.h2>
+          <div className="h-1 w-20 bg-green-500 mx-auto rounded-full" />
+        </div>
+
+        <div className="relative">
+          {/* Connector Line (Desktop) */}
+          <div className="hidden lg:block absolute top-[60px] left-[15%] right-[15%] h-1 bg-gradient-to-r from-blue-500/20 via-green-500/20 to-amber-500/20" />
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-16 relative z-10">
+            {STEPS.map((step, idx) => (
+              <motion.div
+                key={step.title}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: idx * 0.2 }}
+                className="flex flex-col items-center text-center group"
+              >
+                <div 
+                  className="h-24 w-24 rounded-full flex items-center justify-center mb-8 relative"
+                  style={{ backgroundColor: `${step.color}10`, border: `2px solid ${step.color}30` }}
                 >
-                    <h2 className="text-3xl font-bold tracking-tight text-white sm:text-4xl mb-4">
-                        How It Works
-                    </h2>
-                    <p className="text-gray-400 max-w-2xl mx-auto">
-                        Recycling with Loopy is simple, transparent, and rewarding.
-                    </p>
-                </motion.div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative">
-                    {/* Connector Line (Desktop) */}
-                    <div className="hidden lg:block absolute top-12 left-[10%] right-[10%] h-0.5 bg-gradient-to-r from-green-500/0 via-green-500/20 to-green-500/0" />
-
-                    {steps.map((step, index) => (
-                        <motion.div
-                            key={step.title}
-                            initial={{ opacity: 0, y: 20 }}
-                            whileInView={{ opacity: 1, y: 0 }}
-                            viewport={{ once: true }}
-                            transition={{ delay: index * 0.1 }}
-                            className="relative flex flex-col items-center text-center group"
-                        >
-                            <div className="mb-6 relative">
-                                <div className="absolute inset-0 bg-green-500/20 blur-xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity" />
-                                <div className="h-24 w-24 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center relative z-10 group-hover:border-green-500/50 group-hover:bg-green-500/10 transition-colors">
-                                    <step.icon className="h-10 w-10 text-green-500" />
-                                </div>
-                                <div className="absolute -top-3 -right-3 h-8 w-8 rounded-full bg-green-600 text-black font-bold flex items-center justify-center border-4 border-black z-20">
-                                    {index + 1}
-                                </div>
-                            </div>
-                            <h3 className="text-xl font-bold text-white mb-2">{step.title}</h3>
-                            <p className="text-gray-400 text-sm leading-relaxed px-4">
-                                {step.description}
-                            </p>
-                        </motion.div>
-                    ))}
+                  <div 
+                    className="absolute -top-2 -right-2 h-8 w-8 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-xl"
+                    style={{ backgroundColor: step.color }}
+                  >
+                    {idx + 1}
+                  </div>
+                  <step.icon size={40} style={{ color: step.color }} />
                 </div>
-            </div>
-        </section>
-    );
+                
+                <h3 className="text-2xl font-bold text-white mb-4 group-hover:text-green-500 transition-colors">
+                  {step.title}
+                </h3>
+                <p className="text-gray-400 text-sm leading-relaxed max-w-sm">
+                  {step.description}
+                </p>
+              </motion.div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </section>
+  );
 }
