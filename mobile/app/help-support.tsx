@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Linking, TextInput, FlatList, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 import { api } from '../utils/api';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function HelpSupportScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState('options'); // 'options' or 'tickets'
   const [tickets, setTickets] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -151,7 +153,7 @@ export default function HelpSupportScreen() {
         <View style={styles.inputArea}>
           <TextInput
             style={styles.input}
-            placeholder="Type your message..."
+            placeholder={t('type_message')}
             value={newMessage}
             onChangeText={setNewMessage}
             multiline
@@ -170,7 +172,7 @@ export default function HelpSupportScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Help & Support</Text>
+        <Text style={styles.headerTitle}>{t('help_support_header')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -180,13 +182,13 @@ export default function HelpSupportScreen() {
           style={[styles.tab, activeTab === 'options' && styles.activeTab]} 
           onPress={() => setActiveTab('options')}
         >
-          <Text style={[styles.tabText, activeTab === 'options' && styles.activeTabText]}>Options</Text>
+          <Text style={[styles.tabText, activeTab === 'options' && styles.activeTabText]}>{t('options')}</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'tickets' && styles.activeTab]} 
           onPress={() => setActiveTab('tickets')}
         >
-          <Text style={[styles.tabText, activeTab === 'tickets' && styles.activeTabText]}>My Tickets</Text>
+          <Text style={[styles.tabText, activeTab === 'tickets' && styles.activeTabText]}>{t('my_tickets')}</Text>
         </TouchableOpacity>
       </View>
 
@@ -196,33 +198,33 @@ export default function HelpSupportScreen() {
             <View style={styles.supportIcon}>
               <Ionicons name="headset-outline" size={40} color={LoopyColors.green} />
             </View>
-            <Text style={styles.heroTitle}>How can we help?</Text>
-            <Text style={styles.heroSub}>Our support team is available 24/7 to assist you with any issues.</Text>
+            <Text style={styles.heroTitle}>{t('how_can_help')}</Text>
+            <Text style={styles.heroSub}>{t('support_sub')}</Text>
           </View>
 
           <View style={styles.group}>
             <SupportOption 
               icon="chatbubble-ellipses-outline" 
-              label="Message Support" 
-              sub="Chat with our in-app agent" 
+              label={t('message_support')} 
+              sub={t('chat_sub')} 
               color={LoopyColors.green}
               onPress={() => setIsCreatingTicket(true)}
             />
             <SupportOption 
               icon="logo-whatsapp" 
-              label="Chat on WhatsApp" 
+              label={t('chat_whatsapp')} 
               color="#25D366"
               onPress={() => openLink('https://wa.me/919999999999')}
             />
             <SupportOption 
               icon="mail-outline" 
-              label="Email Support" 
+              label={t('email_support')} 
               color={LoopyColors.blue}
               onPress={() => openLink('mailto:support@loopy.co')}
             />
           </View>
 
-          <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+          <Text style={styles.sectionTitle}>{t('faq')}</Text>
           <View style={styles.group}>
             <TouchableOpacity style={styles.faqItem}>
                <Text style={styles.faqText}>How to track my pickup?</Text>
@@ -247,8 +249,8 @@ export default function HelpSupportScreen() {
               ListEmptyComponent={
                 <View style={[styles.center, { marginTop: 100 }]}>
                   <Ionicons name="chatbox-outline" size={64} color="#f3f4f6" />
-                  <Text style={styles.emptyTitle}>No support tickets</Text>
-                  <Text style={styles.emptySub}>Ask a question via 'Message Support' in Options</Text>
+                  <Text style={styles.emptyTitle}>{t('no_tickets')}</Text>
+                  <Text style={styles.emptySub}>{t('ask_question_sub')}</Text>
                 </View>
               }
             />
@@ -261,26 +263,26 @@ export default function HelpSupportScreen() {
         <View style={styles.modalOverlay}>
           <Animated.View entering={FadeInUp} style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>New Support Ticket</Text>
+              <Text style={styles.modalTitle}>{t('new_ticket')}</Text>
               <TouchableOpacity onPress={() => setIsCreatingTicket(false)}>
                 <Ionicons name="close" size={24} color={LoopyColors.charcoal} />
               </TouchableOpacity>
             </View>
             <TextInput 
               style={styles.modalInput} 
-              placeholder="Subject (e.g. Missing Item)" 
+              placeholder={t('subject_placeholder')} 
               value={newTicketSubject}
               onChangeText={setNewTicketSubject}
             />
             <TextInput 
               style={[styles.modalInput, { height: 100, textAlignVertical: 'top' }]} 
-              placeholder="Describe your issue..." 
+              placeholder={t('describe_issue')} 
               multiline
               value={newTicketMessage}
               onChangeText={setNewTicketMessage}
             />
             <TouchableOpacity style={styles.submitBtn} onPress={createTicket}>
-              <Text style={styles.submitBtnText}>Submit Request</Text>
+              <Text style={styles.submitBtnText}>{t('submit_request')}</Text>
             </TouchableOpacity>
           </Animated.View>
         </View>

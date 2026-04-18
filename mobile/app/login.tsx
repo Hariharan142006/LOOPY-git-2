@@ -5,7 +5,7 @@ import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 
 const { width } = Dimensions.get('window');
 

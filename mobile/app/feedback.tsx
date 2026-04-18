@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 
 export default function FeedbackScreen() {
   const router = useRouter();

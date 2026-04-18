@@ -3,30 +3,46 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../utils/api';
 import { useRouter } from 'expo-router';
-import Animated, { FadeInUp, FadeInDown, SlideInRight } from 'react-native-reanimated';
-import { LoopyColors } from '../constants/theme';
+import Animated, { FadeInUp, FadeInDown, FadeInRight } from 'react-native-reanimated';
+import { LoopyColors } from '../constants/colors';
+import { useTranslation } from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
-const CAT_ICONS: any = {
-  'Paper': { icon: 'document-text', color: '#3b82f6' },
-  'Plastic': { icon: 'flask', color: '#8b5cf6' },
-  'Metal': { icon: 'construct', color: '#f59e0b' },
-  'E-Waste': { icon: 'hardware-chip', color: '#ef4444' },
-  'Glass': { icon: 'beaker', color: '#10b981' },
-  'Clothes': { icon: 'shirt', color: '#ec4899' },
-  'Other': { icon: 'cube', color: '#6b7280' }
+const ITEM_ICONS: any = {
+  'Newspaper': 'newspaper-outline',
+  'Copper Wire': 'flash-outline',
+  'PET Bottles': 'wine-outline',
+  'Old Books': 'book-outline',
+  'Aluminum Cans': 'square-outline',
+  'Laptops': 'laptop-outline',
+  'Paper Mix': 'document-text-outline',
+  'Heavy Metal': 'construct-outline',
 };
+
+const MARKET_HIGHLIGHTS = [
+  "Copper values hit all-time high.",
+  "Plastic recycling demand up by 15%.",
+  "Aluminum prices stable this week.",
+  "Paper market seeing steady growth.",
+  "E-waste collection drive tomorrow!"
+];
 
 export default function RatesScreen() {
   const router = useRouter();
-  const [categories, setCategories] = useState([]);
+  const { t } = useTranslation();
+  const [categories, setCategories] = useState<any>([]);
   const [activeCategory, setActiveCategory] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
+  const [highlightIdx, setHighlightIdx] = useState(0);
 
   useEffect(() => {
     fetchRates();
+    const interval = setInterval(() => {
+      setHighlightIdx((prev) => (prev + 1) % MARKET_HIGHLIGHTS.length);
+    }, 4000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchRates = async () => {
@@ -34,14 +50,20 @@ export default function RatesScreen() {
     try {
       const response = await api.get('/api/categories');
       const cats = response.data.categories || [];
-      setCategories(cats);
-      if (cats.length > 0) setActiveCategory(cats[0]);
+      // Add "All" category if not present
+      const allCat = { id: 'all', name: 'All', items: cats.flatMap((c: any) => c.items) };
+      setCategories([allCat, ...cats]);
+      setActiveCategory(allCat);
     } catch (error) {
       console.error("Rates fetch error", error);
     } finally {
       setLoading(false);
     }
   };
+
+  const filteredItems = activeCategory?.items?.filter((item: any) => 
+    item.name.toLowerCase().includes(searchQuery.toLowerCase())
+  ) || [];
 
   if (loading && categories.length === 0) {
     return (
@@ -54,126 +76,242 @@ export default function RatesScreen() {
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
-      {/* Header */}
+      
+      {/* Dynamic Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
+        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
+          <Ionicons name="menu-outline" size={26} color={LoopyColors.charcoal} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Market Rates</Text>
-        <TouchableOpacity style={styles.refreshBtn} onPress={fetchRates}>
-          {loading ? <ActivityIndicator size="small" color={LoopyColors.green} /> : <Ionicons name="refresh" size={22} color={LoopyColors.green} />}
+        <Text style={styles.headerTitle}>Market Prime</Text>
+        <TouchableOpacity style={styles.headerBtn}>
+          <Ionicons name="cart-outline" size={26} color={LoopyColors.charcoal} />
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
-      <View style={styles.searchContainer}>
-        <Ionicons name="search" size={20} color={LoopyColors.grey} />
-        <TextInput 
-          style={styles.searchInput}
-          placeholder="Search scrap items..."
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholderTextColor={LoopyColors.grey}
-        />
-      </View>
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search-outline" size={20} color={LoopyColors.grey} />
+          <TextInput 
+            style={styles.searchInput}
+            placeholder="Search scrap materials..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            placeholderTextColor={LoopyColors.grey}
+          />
+          <TouchableOpacity style={styles.micBtn}>
+             <Ionicons name="mic-outline" size={20} color={LoopyColors.grey} />
+          </TouchableOpacity>
+        </View>
 
-      {/* Category Tabs */}
-      <View style={styles.tabContainer}>
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
-          {categories.map((cat: any) => (
-            <TouchableOpacity 
-              key={cat.id} 
-              style={[
-                styles.tab, 
-                activeCategory?.id === cat.id && styles.tabActive,
-                activeCategory?.id === cat.id && { backgroundColor: CAT_ICONS[cat.name]?.color || LoopyColors.green, borderColor: CAT_ICONS[cat.name]?.color || LoopyColors.green }
-              ]}
-              onPress={() => setActiveCategory(cat)}
-            >
-              <Text style={[styles.tabText, activeCategory?.id === cat.id && styles.tabTextActive]}>{cat.name}</Text>
-            </TouchableOpacity>
-          ))}
-        </ScrollView>
-      </View>
+        {/* Category Tabs */}
+        <View style={styles.tabContainer}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.tabs}>
+            {categories.map((cat: any) => (
+              <TouchableOpacity 
+                key={cat.id} 
+                style={[
+                  styles.tab, 
+                  activeCategory?.id === cat.id && styles.tabActive
+                ]}
+                onPress={() => setActiveCategory(cat)}
+              >
+                <Text style={[styles.tabText, activeCategory?.id === cat.id && styles.tabTextActive]}>{cat.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
 
-      {/* Item Display */}
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
-        <Animated.View entering={FadeInUp} style={styles.grid}>
-          {activeCategory?.items?.filter((item: any) => item.name.toLowerCase().includes(searchQuery.toLowerCase())).map((item: any, index: number) => (
-             <Animated.View key={item.id} entering={FadeInDown.delay(index * 100)} style={styles.rateCard}>
-                <View style={[styles.iconBox, { backgroundColor: (CAT_ICONS[activeCategory.name]?.color || LoopyColors.green) + '15' }]}>
-                   <Ionicons 
-                      name={CAT_ICONS[activeCategory.name]?.icon || 'cube-outline'} 
-                      size={28} 
-                      color={CAT_ICONS[activeCategory.name]?.color || LoopyColors.green} 
-                   />
-                </View>
-                <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
-                <View style={styles.priceRow}>
-                   <Text style={styles.priceVal}>₹{Number(item.currentPrice).toFixed(2)}</Text>
-                   <Text style={styles.unitText}>/{item.unit}</Text>
-                </View>
-                <View style={styles.trendRow}>
-                   <View style={[styles.trendBadge, { backgroundColor: item.currentPrice >= item.basePrice ? '#f0fdf4' : '#fef2f2' }]}>
-                      <Ionicons 
-                        name={item.currentPrice >= item.basePrice ? 'trending-up' : 'trending-down'} 
-                        size={12} 
-                        color={item.currentPrice >= item.basePrice ? LoopyColors.green : LoopyColors.red} 
-                      />
-                      <Text style={[styles.trendLabel, { color: item.currentPrice >= item.basePrice ? LoopyColors.green : LoopyColors.red }]}>
-                         {item.currentPrice >= item.basePrice ? 'STABLE' : 'DROPPED'}
-                      </Text>
-                   </View>
-                </View>
-             </Animated.View>
-          ))}
+        {/* Today's Highlight */}
+        <Animated.View entering={FadeInUp} style={styles.highlightBox}>
+           <View style={styles.highlightContent}>
+              <Text style={styles.highlightTag}>TODAY'S HIGHLIGHT</Text>
+              <Animated.Text key={highlightIdx} entering={FadeInRight} style={styles.highlightTitle}>
+                {MARKET_HIGHLIGHTS[highlightIdx]}
+              </Animated.Text>
+              <TouchableOpacity style={styles.viewTrendsBtn}>
+                 <Text style={styles.viewTrendsText}>VIEW TRADE TRENDS</Text>
+              </TouchableOpacity>
+           </View>
+           <Ionicons name="stats-chart" size={100} color="rgba(255,255,255,0.1)" style={styles.highlightIcon} />
         </Animated.View>
 
-        {/* Informational Footer */}
-        <View style={[styles.infoBox, { backgroundColor: '#f9fafb', borderColor: '#f3f4f6', borderWidth: 1 }]}>
-           <View style={styles.infoIconBox}>
-              <Ionicons name="information-circle" size={22} color={LoopyColors.green} />
-           </View>
-           <View style={{ flex: 1 }}>
-              <Text style={styles.infoTitle}>Transparency Notice</Text>
-              <Text style={styles.infoText}>
-                These are real-time market estimates. Final price is determined by precise weighing during collection.
-              </Text>
-           </View>
-        </View>
+        {/* Items Grid */}
+        <Animated.View entering={FadeInUp.delay(200)} style={styles.grid}>
+          {filteredItems.map((item: any, index: number) => {
+            const isTrending = item.currentPrice > item.basePrice;
+            const subCat = categories.find((c: any) => c.items?.some((i: any) => i.id === item.id))?.name || 'Scrap';
+            
+            return (
+              <Animated.View key={item.id} entering={FadeInDown.delay(index * 50)} style={styles.marketCard}>
+                <View style={styles.cardImageContainer}>
+                   <View style={styles.itemIconCircle}>
+                      <Ionicons 
+                        name={ITEM_ICONS[item.name] || 'cube-outline'} 
+                        size={32} 
+                        color="#1e3a8a" 
+                      />
+                   </View>
+                </View>
+
+                {/* Status Badge */}
+                <View style={[styles.statusBadge, { backgroundColor: isTrending ? '#fef2f2' : '#f0fdf4' }]}>
+                   <Text style={[styles.statusText, { color: isTrending ? '#ef4444' : '#22c55e' }]}>
+                      {isTrending ? 'TRENDING' : 'STABLE'}
+                   </Text>
+                </View>
+
+                <View style={styles.cardInfo}>
+                   <Text style={styles.itemName} numberOfLines={1}>{item.name}</Text>
+                   <View style={styles.priceRow}>
+                      <Text style={styles.priceVal}>₹{Number(item.currentPrice).toFixed(2)}</Text>
+                      <Text style={styles.unitText}>/kg</Text>
+                   </View>
+                   
+                   <View style={styles.cardFooter}>
+                      <Text style={styles.subCatText}>{subCat}</Text>
+                      <TouchableOpacity style={styles.addBtn}>
+                         <Ionicons name="add" size={20} color={LoopyColors.charcoal} />
+                      </TouchableOpacity>
+                   </View>
+                </View>
+              </Animated.View>
+            );
+          })}
+        </Animated.View>
+
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: LoopyColors.white },
+  container: { flex: 1, backgroundColor: '#f8fafc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { paddingTop: 60, paddingHorizontal: 24, paddingBottom: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  backBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: LoopyColors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: LoopyColors.lightGrey },
-  headerTitle: { fontSize: 20, fontWeight: '800', color: LoopyColors.charcoal },
-  refreshBtn: { width: 44, height: 44, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  tabContainer: { paddingVertical: 12, marginBottom: 8 },
-  tabs: { paddingHorizontal: 24, gap: 10 },
-  tab: { paddingHorizontal: 18, paddingVertical: 10, borderRadius: 14, backgroundColor: LoopyColors.white, borderWidth: 1.5, borderColor: LoopyColors.lightGrey },
-  tabActive: { backgroundColor: LoopyColors.green, borderColor: LoopyColors.green },
-  tabText: { fontSize: 13, fontWeight: '700', color: LoopyColors.grey },
-  tabTextActive: { color: LoopyColors.white },
-  scroll: { padding: 24, paddingBottom: 60 },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f3f4f6', marginHorizontal: 24, paddingHorizontal: 16, borderRadius: 16, height: 50, marginBottom: 8, gap: 10 },
-  searchInput: { flex: 1, fontSize: 15, color: LoopyColors.charcoal, fontWeight: '600' },
-  grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 14 },
-  rateCard: { width: (width - 62) / 2, backgroundColor: LoopyColors.white, borderRadius: 24, padding: 20, borderWidth: 1, borderColor: LoopyColors.lightGrey, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.03, shadowRadius: 10, elevation: 2 },
-  iconBox: { width: 52, height: 52, borderRadius: 16, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
-  itemName: { fontSize: 13, fontWeight: '800', color: LoopyColors.charcoal, marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  header: { 
+    paddingTop: 60, 
+    paddingHorizontal: 24, 
+    paddingBottom: 20, 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    backgroundColor: '#fff'
+  },
+  headerBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 22, fontWeight: '900', color: '#166534', letterSpacing: -0.5 },
+  
+  scroll: { paddingBottom: 100 },
+  
+  searchContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#f1f5f9', 
+    marginHorizontal: 24, 
+    paddingHorizontal: 16, 
+    borderRadius: 16, 
+    height: 56, 
+    marginTop: 16,
+    borderWidth: 1,
+    borderColor: '#e2e8f0'
+  },
+  searchInput: { flex: 1, fontSize: 16, color: '#1e293b', fontWeight: '500', marginLeft: 10 },
+  micBtn: { padding: 4 },
+
+  tabContainer: { paddingVertical: 16 },
+  tabs: { paddingHorizontal: 24, gap: 8 },
+  tab: { 
+    paddingHorizontal: 24, 
+    paddingVertical: 10, 
+    borderRadius: 12, 
+    backgroundColor: '#e2e8f0',
+  },
+  tabActive: { backgroundColor: '#166534' },
+  tabText: { fontSize: 14, fontWeight: '700', color: '#64748b' },
+  tabTextActive: { color: '#fff' },
+
+  highlightBox: { 
+    marginHorizontal: 24, 
+    backgroundColor: '#166534', 
+    borderRadius: 24, 
+    padding: 24, 
+    position: 'relative', 
+    overflow: 'hidden',
+    marginBottom: 24,
+    elevation: 8,
+    shadowColor: '#166534',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+  },
+  highlightContent: { zIndex: 1 },
+  highlightTag: { color: '#bbf7d0', fontSize: 10, fontWeight: '800', letterSpacing: 1, marginBottom: 8 },
+  highlightTitle: { color: '#fff', fontSize: 26, fontWeight: '900', marginBottom: 20, lineHeight: 32 },
+  viewTrendsBtn: { 
+    backgroundColor: '#fff', 
+    paddingHorizontal: 16, 
+    paddingVertical: 10, 
+    borderRadius: 12, 
+    alignSelf: 'flex-start' 
+  },
+  viewTrendsText: { color: '#166534', fontSize: 12, fontWeight: '900' },
+  highlightIcon: { position: 'absolute', right: -10, bottom: -20 },
+
+  grid: { flexDirection: 'row', flexWrap: 'wrap', paddingHorizontal: 24, gap: 16 },
+  marketCard: { 
+    width: (width - 64) / 2, 
+    backgroundColor: '#fff', 
+    borderRadius: 24, 
+    padding: 12,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+  },
+  cardImageContainer: { 
+    height: 120, 
+    backgroundColor: '#e0f2fe', 
+    borderRadius: 20, 
+    alignItems: 'center', 
+    justifyContent: 'center',
+    marginBottom: 12,
+  },
+  itemIconCircle: { width: 60, height: 60, borderRadius: 30, backgroundColor: 'rgba(255,255,255,0.5)', alignItems: 'center', justifyContent: 'center' },
+  statusBadge: { 
+    position: 'absolute', 
+    top: 140, 
+    left: 12, 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 6,
+    zIndex: 2,
+  },
+  statusText: { fontSize: 8, fontWeight: '900', letterSpacing: 0.5 },
+  
+  cardInfo: { marginTop: 28 },
+  itemName: { fontSize: 15, fontWeight: '800', color: '#1e293b', marginBottom: 4 },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
-  priceVal: { fontSize: 24, fontWeight: '900', color: LoopyColors.green },
-  unitText: { fontSize: 11, fontWeight: '600', color: LoopyColors.grey, marginLeft: 2 },
-  trendRow: { flexDirection: 'row' },
-  trendBadge: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8, gap: 4 },
-  trendLabel: { fontSize: 9, fontWeight: '800' },
-  infoBox: { flexDirection: 'row', backgroundColor: '#eff6ff', padding: 20, borderRadius: 24, marginTop: 32, gap: 16, alignItems: 'center' },
-  infoIconBox: { width: 44, height: 44, borderRadius: 14, backgroundColor: '#ffffff', alignItems: 'center', justifyContent: 'center' },
-  infoTitle: { fontSize: 14, fontWeight: '800', color: '#1e40af', marginBottom: 2 },
-  infoText: { fontSize: 11, color: '#1e40af', lineHeight: 16, opacity: 0.8 },
+  priceVal: { fontSize: 20, fontWeight: '900', color: '#0f172a' },
+  unitText: { fontSize: 12, color: '#64748b', marginLeft: 2, fontWeight: '600' },
+  
+  cardFooter: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#f1f5f9',
+    paddingTop: 10,
+  },
+  subCatText: { fontSize: 11, color: '#94a3b8', fontWeight: '600' },
+  addBtn: { 
+    width: 32, 
+    height: 32, 
+    borderRadius: 10, 
+    backgroundColor: '#bbf7d0', 
+    alignItems: 'center', 
+    justifyContent: 'center' 
+  },
 });

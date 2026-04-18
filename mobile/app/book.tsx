@@ -7,36 +7,30 @@ import { useAuth } from '../context/AuthContext';
 import * as Location from 'expo-location';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, FadeInUp, SlideInRight } from 'react-native-reanimated';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
+import { useTranslation } from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
-
-const WEIGHT_RANGES = [
-  { label: '0-5 Kgs', min: 0, max: 5, avg: 2.5 },
-  { label: '5-10 Kgs', min: 5, max: 10, avg: 7.5 },
-  { label: '10-15 Kgs', min: 10, max: 15, avg: 12.5 },
-  { label: 'More than 15 Kgs', min: 15, max: 100, avg: 20 }
-];
-
-const TIME_SLOTS = [
-  { label: '9:30 AM - 11:30 AM', value: '09:30' },
-  { label: '11:30 AM - 1:30 PM', value: '11:30' },
-  { label: '2:30 PM - 4:30 PM', value: '14:30' },
-  { label: '4:30 PM - 7:00 PM', value: '16:30' }
-];
-
-const CAT_ICONS: any = {
-  'Paper': 'document-text',
-  'Plastic': 'flask',
-  'Metal': 'construct',
-  'E-Waste': 'hardware-chip',
-  'Glass': 'beaker',
-  'Clothes': 'shirt'
-};
 
 export default function BookPickupScreen() {
   const router = useRouter();
   const { user } = useAuth();
+  const { t } = useTranslation();
+  
+  const WEIGHT_RANGES = [
+    { label: t('range_0_5'), min: 0, max: 5, avg: 2.5 },
+    { label: t('range_5_10'), min: 5, max: 10, avg: 7.5 },
+    { label: t('range_10_15'), min: 10, max: 15, avg: 12.5 },
+    { label: t('range_15_plus'), min: 15, max: 100, avg: 20 }
+  ];
+
+  const TIME_SLOTS = [
+    { label: t('slot_morning'), value: '09:30' },
+    { label: t('slot_noon'), value: '11:30' },
+    { label: t('slot_afternoon'), value: '14:30' },
+    { label: t('slot_evening'), value: '16:30' }
+  ];
+
   const [step, setStep] = useState(1);
   const [loading, setLoading] = useState(false);
 
@@ -102,7 +96,7 @@ export default function BookPickupScreen() {
         });
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not detect location.');
+      Alert.alert(t('error'), t('could_not_detect_location'));
     } finally {
       setIsLocating(false);
     }
@@ -110,7 +104,7 @@ export default function BookPickupScreen() {
 
   const handleSubmit = async () => {
     if (!selectedAddress) {
-      Alert.alert('Error', 'Please select a pickup location.');
+      Alert.alert(t('error'), t('select_pickup_location'));
       return;
     }
 
@@ -132,12 +126,12 @@ export default function BookPickupScreen() {
       });
 
       if (response.data.success) {
-        Alert.alert('Success', 'Pickup scheduled successfully!', [
-          { text: 'OK', onPress: () => router.replace('/(tabs)' as any) }
+        Alert.alert(t('success'), t('scheduling_success'), [
+          { text: t('ok'), onPress: () => router.replace('/(tabs)' as any) }
         ]);
       }
     } catch (error) {
-      Alert.alert('Error', 'Failed to schedule pickup.');
+      Alert.alert(t('error'), t('scheduling_failed'));
     } finally {
       setLoading(false);
     }
@@ -149,8 +143,8 @@ export default function BookPickupScreen() {
            <Animated.View style={[styles.indicatorFill, { width: `${(step / 2) * 100}%` }]} />
         </View>
         <View style={styles.indicatorLabelBox}>
-           <Text style={styles.indicatorText}>Step {step} of 2</Text>
-           <Text style={styles.indicatorSub}>{step === 1 ? 'Material Selection' : 'Location & Time'}</Text>
+           <Text style={styles.indicatorText}>{t('step_indicator', { current: step, total: 2 })}</Text>
+           <Text style={styles.indicatorSub}>{step === 1 ? t('material_selection') : t('location_time')}</Text>
         </View>
      </View>
   );
@@ -158,8 +152,8 @@ export default function BookPickupScreen() {
   const renderStep1 = () => (
     <Animated.View entering={FadeInUp} style={styles.stepContainer}>
 
-      <Text style={styles.sectionTitle}>What are we collecting?</Text>
-      <Text style={styles.sectionSub}>Select all categories that apply to your scrap.</Text>
+      <Text style={styles.sectionTitle}>{t('what_collecting')}</Text>
+      <Text style={styles.sectionSub}>{t('select_categories_sub')}</Text>
       
       <View style={styles.grid}>
         {categories.map((cat: any) => {
@@ -190,14 +184,14 @@ export default function BookPickupScreen() {
         style={[styles.primaryButton, selectedCategories.length === 0 && styles.buttonDisabled]}
         onPress={() => {
           if (selectedCategories.length === 0) {
-            Alert.alert('Selection Required', 'Please select at least one material to continue.');
+            Alert.alert(t('selection_required'), t('select_at_least_one'));
           } else {
             setStep(2);
           }
         }}
         activeOpacity={0.8}
       >
-        <Text style={styles.primaryButtonText}>Continue to Details</Text>
+        <Text style={styles.primaryButtonText}>{t('continue_to_details')}</Text>
         <Ionicons name="arrow-forward" size={20} color="#fff" />
       </TouchableOpacity>
 
@@ -207,10 +201,10 @@ export default function BookPickupScreen() {
   const renderStep2 = () => (
     <Animated.View entering={FadeInUp} style={styles.stepContainer}>
 
-      <Text style={styles.sectionTitle}>Finalize Pickup</Text>
+      <Text style={styles.sectionTitle}>{t('finalize_pickup')}</Text>
       
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Choose Date</Text>
+        <Text style={styles.label}>{t('choose_date')}</Text>
         <TouchableOpacity style={styles.inputBox} onPress={() => setShowDatePicker(true)}>
           <Ionicons name="calendar-outline" size={20} color={LoopyColors.grey} />
           <Text style={styles.inputBoxText}>{date.toDateString()}</Text>
@@ -230,37 +224,37 @@ export default function BookPickupScreen() {
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Pickup Window</Text>
+        <Text style={styles.label}>{t('pickup_window')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {TIME_SLOTS.map(slot => (
-            <TouchableOpacity 
-              key={slot.value} 
-              style={[styles.chip, timeSlot === slot.value && styles.chipActive]}
-              onPress={() => setTimeSlot(slot.value)}
-            >
-              <Text style={[styles.chipText, timeSlot === slot.value && styles.chipTextActive]}>{slot.label}</Text>
-            </TouchableOpacity>
+             <TouchableOpacity 
+               key={slot.value} 
+               style={[styles.chip, timeSlot === slot.value && styles.chipActive]}
+               onPress={() => setTimeSlot(slot.value)}
+             >
+               <Text style={[styles.chipText, timeSlot === slot.value && styles.chipTextActive]}>{slot.label}</Text>
+             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Estimated Weight</Text>
+        <Text style={styles.label}>{t('estimated_weight')}</Text>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chipRow}>
           {WEIGHT_RANGES.map(range => (
-            <TouchableOpacity 
-              key={range.label} 
-              style={[styles.chip, weightRange.label === range.label && styles.chipActive]}
-              onPress={() => setWeightRange(range)}
-            >
-              <Text style={[styles.chipText, weightRange.label === range.label && styles.chipTextActive]}>{range.label}</Text>
-            </TouchableOpacity>
+             <TouchableOpacity 
+               key={range.label} 
+               style={[styles.chip, weightRange.label === range.label && styles.chipActive]}
+               onPress={() => setWeightRange(range)}
+             >
+               <Text style={[styles.chipText, weightRange.label === range.label && styles.chipTextActive]}>{range.label}</Text>
+             </TouchableOpacity>
           ))}
         </ScrollView>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Pickup Address</Text>
+        <Text style={styles.label}>{t('pickup_address')}</Text>
         {addresses.map((addr: any) => (
           <TouchableOpacity 
             key={addr.id} 
@@ -271,7 +265,7 @@ export default function BookPickupScreen() {
                <Ionicons name="home-outline" size={18} color={selectedAddress?.id === addr.id ? '#fff' : LoopyColors.grey} />
             </View>
             <View style={{ flex: 1 }}>
-               <Text style={[styles.addressLabel, selectedAddress?.id === addr.id && { color: LoopyColors.green }]}>{addr.label}</Text>
+               <Text style={[styles.addressLabel, selectedAddress?.id === addr.id && { color: LoopyColors.green }]}>{t(addr.label.toLowerCase(), { defaultValue: addr.label })}</Text>
                <Text style={styles.addressSub} numberOfLines={1}>{addr.street}</Text>
             </View>
             {selectedAddress?.id === addr.id && <Ionicons name="radio-button-on" size={20} color={LoopyColors.green} />}
@@ -280,16 +274,16 @@ export default function BookPickupScreen() {
         
         <TouchableOpacity style={styles.detectBtn} onPress={handleDetectLocation} disabled={isLocating}>
           {isLocating ? <ActivityIndicator size="small" color={LoopyColors.green} /> : <Ionicons name="navigate-outline" size={18} color={LoopyColors.green} />}
-          <Text style={styles.detectBtnText}>{selectedAddress?.isNew ? 'Location Detected ✓' : 'Detect Current Location'}</Text>
+          <Text style={styles.detectBtnText}>{selectedAddress?.isNew ? t('location_detected') : t('detect_location')}</Text>
           {selectedAddress?.isNew && <Text style={styles.detectedAddr} numberOfLines={1}>{selectedAddress.address}</Text>}
         </TouchableOpacity>
       </View>
 
       <View style={styles.inputGroup}>
-        <Text style={styles.label}>Special Instructions</Text>
+        <Text style={styles.label}>{t('special_instructions')}</Text>
         <TextInput 
           style={styles.textInput}
-          placeholder="e.g. Call before arrival, Gate code..."
+          placeholder={t('instructions_placeholder')}
           placeholderTextColor={LoopyColors.grey}
           multiline
           value={remarks}
@@ -305,7 +299,7 @@ export default function BookPickupScreen() {
         <TouchableOpacity style={[styles.primaryButton, { flex: 1, marginTop: 0 }, loading && styles.buttonDisabled]} onPress={handleSubmit} disabled={loading}>
           {loading ? <ActivityIndicator color="#fff" /> : (
              <>
-                <Text style={styles.primaryButtonText}>Schedule Pickup</Text>
+                <Text style={styles.primaryButtonText}>{t('schedule_pickup')}</Text>
                 <Ionicons name="checkmark-circle" size={20} color="#fff" />
              </>
           )}
@@ -320,7 +314,7 @@ export default function BookPickupScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
           <Ionicons name="close" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>New Booking</Text>
+        <Text style={styles.headerTitle}>{t('new_booking_header')}</Text>
         <View style={{ width: 44 }} />
       </View>
 

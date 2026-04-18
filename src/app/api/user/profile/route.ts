@@ -29,7 +29,8 @@ export async function GET(request: Request) {
                 vehicleType: true,
                 biometricsEnabled: true,
                 appNotificationsEnabled: true,
-                preferredLanguage: true
+                preferredLanguage: true,
+                image: true
             }
         });
 
@@ -60,21 +61,23 @@ export async function POST(request: Request) {
         }
 
         const body = await request.json();
-        const { name, email, phone } = body;
+        const { name, email, phone, image } = body;
 
         const updatedUser = await db.user.update({
             where: { id: decoded.id },
             data: {
                 name,
                 email,
-                phone
+                phone,
+                image
             },
             select: {
                 id: true,
                 name: true,
                 email: true,
                 role: true,
-                phone: true
+                phone: true,
+                image: true
             }
         });
 

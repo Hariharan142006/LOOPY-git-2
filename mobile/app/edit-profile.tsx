@@ -1,22 +1,72 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
 import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import * as ImagePicker from 'expo-image-picker';
+import { LoopyColors } from '../constants/colors';
+import { Fonts } from '../constants/typography';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function EditProfileScreen() {
   const router = useRouter();
-  const { user, login } = useAuth();
+  const { user, login, updateUser } = useAuth();
+  const { t } = useTranslation();
   
   const [name, setName] = useState(user?.name || '');
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState((user as any)?.phone || '');
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
+
+  const handlePickImage = async () => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert(t('error'), 'Gallery access is required to change profile picture');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ['images'],
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.5,
+        base64: true,
+      });
+
+      if (!result.canceled && result.assets[0].base64) {
+        setUploading(true);
+        const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
+        
+        // Sync with backend
+        await api.post('/api/user/profile', { image: base64Image });
+        
+        // Update local global state
+        await updateUser({ image: base64Image });
+        
+        Alert.alert(t('success'), 'Profile picture updated successfully');
+      }
+    } catch (error) {
+      console.error(error);
+      Alert.alert(t('error'), 'Could not update profile picture. Please try again.');
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const handleUpdate = async () => {
-    if (!name || !email || !phone) {
-      Alert.alert('Error', 'Please fill in all fields');
+    if (!name) {
+      Alert.alert(t('error'), 'Please enter your full name');
+      return;
+    }
+    if (!phone) {
+      Alert.alert(t('error'), 'Please enter your phone number');
+      return;
+    }
+    if (!email) {
+      Alert.alert(t('error'), 'Email is missing. Please contact support.');
       return;
     }
 
@@ -29,14 +79,12 @@ export default function EditProfileScreen() {
       });
 
       if (response.data.success) {
-        // Update local auth context with new user data
-        // We might need to refresh the token if name is in payload, 
-        // but here we just update the user object.
-        Alert.alert('Success', 'Profile updated successfully!');
+        await updateUser({ name, phone });
+        Alert.alert(t('success'), 'Profile updated successfully!');
         router.back();
       }
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to update profile.');
+      Alert.alert(t('error'), 'Failed to update profile.');
     } finally {
       setLoading(false);
     }
@@ -51,23 +99,31 @@ export default function EditProfileScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+        <Text style={styles.headerTitle}>{t('edit_profile')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.avatarSection}>
            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+              {uploading ? (
+                <ActivityIndicator color={LoopyColors.green} />
+              ) : (
+                user?.image ? (
+                  <Image source={{ uri: user.image }} style={styles.avatarImage} />
+                ) : (
+                  <Text style={styles.avatarText}>{name.charAt(0).toUpperCase()}</Text>
+                )
+              )}
            </View>
-           <TouchableOpacity style={styles.changeBtn}>
-              <Text style={styles.changeText}>Change Photo</Text>
+           <TouchableOpacity style={styles.changeBtn} onPress={handlePickImage} disabled={uploading}>
+              <Text style={styles.changeText}>{uploading ? 'Uploading...' : 'Change Photo'}</Text>
            </TouchableOpacity>
         </View>
 
         <View style={styles.form}>
            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Full Name</Text>
+              <Text style={styles.label}>{t('full_name')}</Text>
               <TextInput 
                 style={styles.input}
                 value={name}
@@ -77,18 +133,18 @@ export default function EditProfileScreen() {
            </View>
 
            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Email Address</Text>
+              <Text style={styles.label}>{t('email_address')}</Text>
               <TextInput 
                 style={[styles.input, styles.inputDisabled]}
                 value={email}
                 editable={false}
                 placeholder="email@example.com"
               />
-              <Text style={styles.hint}>Email cannot be changed for security.</Text>
+              <Text style={styles.hint}>{t('email_hint')}</Text>
            </View>
 
            <View style={styles.inputGroup}>
-              <Text style={styles.label}>Phone Number</Text>
+              <Text style={styles.label}>{t('phone_number')}</Text>
               <TextInput 
                 style={styles.input}
                 value={phone}
@@ -103,7 +159,7 @@ export default function EditProfileScreen() {
              onPress={handleUpdate}
              disabled={loading}
            >
-              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>Save Changes</Text>}
+              {loading ? <ActivityIndicator color="#fff" /> : <Text style={styles.submitText}>{t('save_changes')}</Text>}
            </TouchableOpacity>
         </View>
       </ScrollView>
@@ -160,6 +216,11 @@ const styles = StyleSheet.create({
     fontSize: 40,
     fontWeight: 'bold',
     color: '#fff',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 50,
   },
   changeBtn: {
     marginTop: 12,

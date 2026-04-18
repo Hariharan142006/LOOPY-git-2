@@ -1,8 +1,3 @@
-/**
- * Below are the colors that are used in the app. The colors are defined in the light and dark mode.
- * There are many other ways to style your app. For example, [Nativewind](https://www.nativewind.dev/), [Tamagui](https://tamagui.dev/), [unistyles](https://reactnativeunistyles.vercel.app), etc.
- */
-
 import { Platform } from 'react-native';
 
 export const LoopyColors = {
@@ -15,6 +10,14 @@ export const LoopyColors = {
   yellow: '#f59e0b',
   blue: '#3b82f6',
   red: '#ef4444',
+  primary: '#10b981', // New standard primary green (from hardcoded usages)
+  secondaryBackground: '#151718', // Used in dark mode
+  textDark: '#111827', // Hardcoded black-ish in UI
+  textMedium: '#4b5563', // Hardcoded grey in UI
+  textLight: '#9ca3af', // Hardcoded light grey in UI
+  border: '#e5e7eb', // Example border color
+  success: '#059669', // Darker green
+  warning: '#b45309', // Orange/Brown for pending
 };
 
 export const Colors = {
@@ -36,11 +39,4 @@ export const Colors = {
     tabIconSelected: LoopyColors.white,
     brand: LoopyColors.green,
   },
-};
-
-export const Fonts = {
-  regular: 'Poppins_400Regular',
-  medium: 'Poppins_500Medium',
-  semiBold: 'Poppins_600SemiBold',
-  bold: 'Poppins_700Bold',
 };

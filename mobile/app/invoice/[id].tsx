@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { api } from '../../utils/api';
-import { LoopyColors } from '../../constants/theme';
+import { LoopyColors, Colors } from '../../constants/colors';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import Animated, { FadeInUp } from 'react-native-reanimated';

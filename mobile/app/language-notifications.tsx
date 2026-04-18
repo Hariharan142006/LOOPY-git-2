@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 import { api } from '../utils/api';
+import { useAuth } from '../context/AuthContext';
+import { useTranslation } from '../hooks/useTranslation';
 
 const LANGUAGES = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
@@ -16,10 +18,12 @@ const LANGUAGES = [
 
 export default function LanguageNotificationsScreen() {
   const router = useRouter();
+  const { user, updateUser: syncUser } = useAuth();
+  const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
   const [settings, setSettings] = useState<any>({
-    appNotificationsEnabled: true,
-    preferredLanguage: 'en'
+    appNotificationsEnabled: user?.appNotificationsEnabled ?? true,
+    preferredLanguage: user?.preferredLanguage ?? 'en'
   });
 
   useEffect(() => {
@@ -42,6 +46,10 @@ export default function LanguageNotificationsScreen() {
       const updated = { ...settings, [key]: value };
       setSettings(updated);
       await api.patch('/api/user/settings', { [key]: value });
+      
+      // Global sync with AuthContext
+      await syncUser({ [key]: value });
+      
     } catch (error) {
       Alert.alert("Error", "Failed to update setting.");
       fetchSettings(); // Revert on failure

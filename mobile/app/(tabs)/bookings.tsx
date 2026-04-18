@@ -1,23 +1,27 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity } from 'react-native';
-
-import Animated, { FadeInDown } from 'react-native-reanimated';
-
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, ScrollView, StatusBar, Image, Dimensions } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import Animated, { FadeInDown, FadeInUp, FadeInRight } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Fonts } from '../../constants/theme';
+import { LoopyColors } from '../../constants/colors';
+import { Fonts } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/layout';
+import { useTranslation } from '../../hooks/useTranslation';
+
+
+const { width } = Dimensions.get('window');
 
 export default function BookingsScreen() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-
-
 
   const fetchBookings = async () => {
     try {
@@ -33,8 +37,6 @@ export default function BookingsScreen() {
 
   useEffect(() => {
     fetchBookings();
-    const interval = setInterval(fetchBookings, 20000);
-    return () => clearInterval(interval);
   }, []);
 
   const onRefresh = () => {
@@ -42,139 +44,218 @@ export default function BookingsScreen() {
     fetchBookings();
   };
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'PENDING': return '#f59e0b';
-      case 'ASSIGNED': return '#3b82f6';
-      case 'ONEWAY': return '#10b981';
-      case 'ARRIVED': return '#8b5cf6';
-      case 'PAID': return '#10b981';
-      case 'COMPLETED': return '#059669';
-      case 'CANCELLED': return '#ef4444';
-      default: return '#6b7280';
-    }
+  const renderTimelineItem = ({ item, index }: { item: any; index: number }) => {
+    const status = item.status?.toUpperCase();
+    const isCompleted = status === 'COMPLETED' || status === 'PAID';
+    const isActive = status === 'PENDING' || status === 'ASSIGNED' || status === 'ONEWAY' || status === 'ARRIVED';
+    
+    const getStatusColor = () => {
+      switch (status) {
+        case 'PENDING': return '#f59e0b'; // Amber
+        case 'ASSIGNED': return '#3b82f6'; // Blue
+        case 'ONEWAY': return '#10b981'; // Green
+        case 'ARRIVED': return '#8b5cf6'; // Purple
+        case 'COMPLETED':
+        case 'PAID': return '#22c55e'; // Success Green
+        case 'CANCELLED': return '#ef4444'; // Red
+        default: return '#9ca3af'; // Grey
+      }
+    };
+
+    const statusColor = getStatusColor();
+    
+    return (
+      <View style={styles.timelineRow}>
+        <View style={styles.timelineLeft}>
+          <View style={[styles.timelineLine, index === bookings.length - 1 && { height: '50%' }]} />
+          <View style={[
+            styles.timelineDot, 
+            isActive && { backgroundColor: statusColor + '20', borderColor: statusColor, borderWidth: 2 },
+            isCompleted && { backgroundColor: statusColor }
+          ]}>
+             {isActive && <View style={[styles.dotInner, { backgroundColor: statusColor }]} />}
+          </View>
+        </View>
+
+        <Animated.View 
+          entering={FadeInRight.delay(index * 100)} 
+          style={styles.cardContainer}
+        >
+          <TouchableOpacity 
+            activeOpacity={0.7}
+            onPress={() => router.push(`/track/${item.id}` as any)}
+            style={[
+              styles.bookingCard, 
+              isActive && { backgroundColor: statusColor + '08', borderColor: statusColor + '40' }
+            ]}
+          >
+            <View style={styles.cardHeaderSmall}>
+               <Text style={[styles.statusLabel, { color: statusColor }]}>
+                 {t(`status.${status.toLowerCase()}`)} • {new Date(item.scheduledAt).toLocaleDateString()}
+               </Text>
+               <Ionicons 
+                 name={isCompleted ? "checkmark-circle" : (status === 'PENDING' ? "time" : "navigate")} 
+                 size={16} 
+                 color={statusColor} 
+               />
+            </View>
+
+            <Text style={styles.cardTitle}>{item.id.slice(-6).toUpperCase()} {t('pickup')}</Text>
+            <Text style={styles.cardDesc}>{item.address?.street}, {item.address?.city}</Text>
+            
+            <View style={styles.cardFooter}>
+               <View style={styles.materialTag}>
+                  <Ionicons name="leaf" size={12} color={isActive ? statusColor : '#6b7280'} />
+                  <Text style={[styles.materialText, isActive && { color: statusColor }]}>{t('recyclables')}</Text>
+               </View>
+               {isCompleted && item.totalAmount > 0 && (
+                  <View style={styles.creditsBadge}>
+                     <Text style={styles.creditsText}>+₹{item.totalAmount.toFixed(0)} Credits</Text>
+                  </View>
+               )}
+            </View>
+          </TouchableOpacity>
+        </Animated.View>
+      </View>
+    );
   };
 
-  const renderBookingItem = ({ item, index }: any) => (
-    <Animated.View 
-      entering={FadeInDown.delay(index * 100)} 
-      style={styles.bookingCard}
-    >
-      <View style={styles.cardHeader}>
-        <View>
-          <Text style={styles.bookingId}>Pickup #{item.id.slice(-6).toUpperCase()}</Text>
-          <Text style={styles.bookingDate}>{new Date(item.scheduledAt).toLocaleDateString()} at {new Date(item.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+  const ListHeader = () => (
+    <Animated.View entering={FadeInUp} style={styles.impactCardContainer}>
+      <View style={styles.impactCard}>
+        <View style={styles.impactCardRow}>
+          <View>
+            <Text style={styles.impactLabel}>{t('total_savings')}</Text>
+            <Text style={styles.impactValue}>124.8 KG</Text>
+          </View>
+          <View style={styles.growthBadge}>
+             <Text style={styles.growthText}>+12% this month</Text>
+          </View>
         </View>
-        <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
-          <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
+        
+        <View style={styles.subStatsRow}>
+           <View style={styles.subStatCard}>
+              <View style={styles.subStatIcon}><Ionicons name="sync" size={14} color="#16a34a" /></View>
+              <Text style={styles.subStatLabel}>{t('plastic_diverted')}</Text>
+              <Text style={styles.subStatVal}>82.3 kg</Text>
+           </View>
+           <View style={styles.subStatCard}>
+              <View style={styles.subStatIcon}><Ionicons name="leaf" size={14} color="#16a34a" /></View>
+              <Text style={styles.subStatLabel}>{t('co2_offset')}</Text>
+              <Text style={styles.subStatVal}>42.5 kg</Text>
+           </View>
         </View>
       </View>
-
-      <View style={styles.cardBody}>
-        <View style={styles.infoRow}>
-          <View style={styles.locationIconBox}>
-            <Ionicons name="location" size={14} color="#fff" />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Text style={styles.locationLabel}>Pickup Location</Text>
-            <Text style={styles.infoText} numberOfLines={3}>{item.address?.street}, {item.address?.city}</Text>
-          </View>
-        </View>
-        {item.totalAmount > 0 && (
-          <View style={styles.infoRow}>
-            <Ionicons name="cash-outline" size={16} color="#059669" />
-            <Text style={[styles.infoText, { color: '#059669', fontWeight: 'bold' }]}>Earned: ₹{(item.totalAmount || 0).toFixed(2)}</Text>
-
-          </View>
-        )}
-      </View>
-
-      <TouchableOpacity 
-        style={styles.detailsBtn}
-        onPress={() => router.push(`/track/${item.id}` as any)}
-      >
-        <Text style={styles.detailsBtnText}>View Details</Text>
-        <Ionicons name="chevron-forward" size={16} color="#10b981" />
-      </TouchableOpacity>
     </Animated.View>
   );
 
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={LoopyColors.green} />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      
+      <View style={styles.header}>
+        <View style={{ width: 40 }} />
+        <Text style={styles.headerTitle}>{t('bookings')}</Text>
+        <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile' as any)}>
+           <Image 
+              source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
+              style={styles.avatarMini} 
+           />
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         data={bookings}
-        renderItem={renderBookingItem}
+        renderItem={renderTimelineItem}
         keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContainer}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#10b981" />}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="calendar-outline" size={64} color="#f3f4f6" />
-            <Text style={styles.emptyTitle}>No Bookings Yet</Text>
-            <Text style={styles.emptySubtitle}>Schedule your first scrap pickup today!</Text>
-            <TouchableOpacity style={styles.bookNowBtn} onPress={() => router.push('/book')}>
-              <Text style={styles.bookNowText}>Book a Pickup</Text>
-            </TouchableOpacity>
-          </View>
-        }
+        ListHeaderComponent={ListHeader}
+        ListFooterComponent={() => (
+          <TouchableOpacity style={styles.loadMoreBtn}>
+             <Text style={styles.loadMoreText}>{t('load_more')}</Text>
+          </TouchableOpacity>
+        )}
+        contentContainerStyle={styles.listContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={LoopyColors.green} />}
+        showsVerticalScrollIndicator={false}
       />
-    </View>
+
+      <TouchableOpacity 
+        style={styles.fab}
+        onPress={() => router.push('/book' as any)}
+      >
+        <Ionicons name="add" size={32} color="#fff" />
+      </TouchableOpacity>
+    </SafeAreaView>
   );
 }
 
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f9fafb' },
+  container: { flex: 1, backgroundColor: '#fcfcfc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  listContainer: { padding: 20 },
-  bookingCard: { backgroundColor: '#fff', borderRadius: 24, padding: 18, marginBottom: 16, borderWidth: 1, borderColor: '#f3f4f6', shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
-  bookingId: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827' },
-  bookingDate: { fontSize: 12, fontFamily: Fonts.medium, color: '#6b7280', marginTop: 2 },
-  statusBadge: { paddingHorizontal: 12, paddingVertical: 4, borderRadius: 10 },
-  statusText: { fontSize: 11, fontFamily: Fonts.bold, textTransform: 'uppercase' },
-  cardBody: { gap: 12, marginBottom: 16 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  locationIconBox: { width: 32, height: 32, borderRadius: 10, backgroundColor: '#3b82f6', alignItems: 'center', justifyContent: 'center' },
-  locationLabel: { fontSize: 10, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 0.8 },
-  infoText: { fontSize: 13, fontFamily: Fonts.semiBold, color: '#1f2937', lineHeight: 18 },
-  detailsBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', borderTopWidth: 1, borderTopColor: '#f3f4f6', paddingTop: 16, gap: 4 },
-  detailsBtnText: { fontSize: 14, fontFamily: Fonts.bold, color: '#10b981' },
-  emptyContainer: { alignItems: 'center', marginTop: 100 },
-  emptyTitle: { fontSize: 22, fontFamily: Fonts.bold, color: '#111827', marginTop: 20 },
-  emptySubtitle: { fontSize: 14, fontFamily: Fonts.regular, color: '#6b7280', textAlign: 'center', marginTop: 8, paddingHorizontal: 40 },
-  bookNowBtn: { backgroundColor: '#10b981', paddingHorizontal: 30, paddingVertical: 15, borderRadius: 18, marginTop: 30 },
-  bookNowText: { color: '#fff', fontFamily: Fonts.bold, fontSize: 16 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#fff', borderTopLeftRadius: 32, borderTopRightRadius: 32, padding: 24, maxHeight: '80%' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 },
-  modalTitle: { fontSize: 20, fontFamily: Fonts.bold, color: '#111827' },
-  logisticsSection: { marginBottom: 24 },
-  sectionTitle: { fontSize: 14, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', marginBottom: 12, letterSpacing: 1 },
-  porterCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f9fafb', borderRadius: 20, padding: 16, borderWidth: 1, borderColor: '#f3f4f6' },
-  porterInfo: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 12 },
-  porterAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
-  avatarText: { color: '#fff', fontSize: 20, fontFamily: Fonts.bold },
-  porterName: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827' },
-  porterSub: { fontSize: 12, fontFamily: Fonts.regular, color: '#6b7280' },
-  callBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#10b981', alignItems: 'center', justifyContent: 'center' },
-  pendingPorterCard: { padding: 20, backgroundColor: '#fffbeb', borderRadius: 20, borderWidth: 1, borderColor: '#fef3c7', alignItems: 'center', flexDirection: 'row', gap: 12 },
-  pendingPorterText: { color: '#b45309', fontSize: 14, fontFamily: Fonts.medium },
-  detailsSection: { borderBottomWidth: 1, borderBottomColor: '#f3f4f6', paddingBottom: 24, marginBottom: 24 },
-  itemRow: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 8 },
-  itemName: { fontSize: 15, fontFamily: Fonts.regular, color: '#111827' },
-  itemQty: { fontSize: 15, fontFamily: Fonts.bold, color: '#111827' },
-  emptyItemsText: { color: '#6b7280', fontStyle: 'italic', fontFamily: Fonts.regular },
-  locationText: { fontSize: 15, fontFamily: Fonts.regular, color: '#4b5563', lineHeight: 22 },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, paddingBottom: 20 },
-  totalLabel: { fontSize: 18, fontFamily: Fonts.bold, color: '#111827' },
-  totalVal: { fontSize: 24, fontFamily: Fonts.bold, color: '#10b981' },
+  
+  // Header
+  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 24, paddingVertical: 12 },
+  headerTitle: { fontSize: 18, fontFamily: Fonts.bold, color: '#111827' },
+  profileBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#e5e7eb' },
+  avatarMini: { width: '100%', height: '100%' },
+
+  // Impact Card
+  impactCardContainer: { padding: 24, paddingBottom: 12 },
+  impactCard: { 
+    backgroundColor: '#fff', 
+    borderRadius: 32, 
+    padding: 24,
+    shadowColor: '#10b981',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.1,
+    shadowRadius: 20,
+    elevation: 8 
+  },
+  impactCardRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 },
+  impactLabel: { fontSize: 10, fontFamily: Fonts.bold, color: '#059669', letterSpacing: 1 },
+  impactValue: { fontSize: 32, fontFamily: Fonts.bold, color: '#111827', marginTop: 4 },
+  growthBadge: { backgroundColor: '#bbf7d0', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 100 },
+  growthText: { color: '#166534', fontSize: 10, fontFamily: Fonts.bold },
+  subStatsRow: { flexDirection: 'row', gap: 12 },
+  subStatCard: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 20, padding: 16 },
+  subStatIcon: { marginBottom: 8 },
+  subStatLabel: { fontSize: 10, fontFamily: Fonts.medium, color: '#6b7280', marginBottom: 2 },
+  subStatVal: { fontSize: 14, fontFamily: Fonts.bold, color: '#111827' },
+
+  // Timeline
+  listContent: { paddingBottom: 100 },
+  timelineRow: { flexDirection: 'row', paddingHorizontal: 24, marginBottom: 4 },
+  timelineLeft: { width: 30, alignItems: 'center' },
+  timelineLine: { position: 'absolute', top: 0, bottom: -10, width: 2, backgroundColor: '#e5e7eb' },
+  timelineDot: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#9ca3af', marginTop: 30, zIndex: 1, borderWidth: 2, borderColor: '#fcfcfc' },
+  timelineDotActive: { backgroundColor: '#bbf7d0', width: 24, height: 24, borderRadius: 12, marginTop: 24, marginLeft: 0 },
+  dotInner: { width: 12, height: 12, borderRadius: 6, backgroundColor: '#22c55e' },
+  
+  // Cards
+  cardContainer: { flex: 1 },
+  bookingCard: { flex: 1, backgroundColor: '#fff', borderRadius: 24, padding: 20, marginLeft: 16, marginBottom: 20, borderWidth: 1, borderColor: '#f3f4f6' },
+  scheduledCard: { backgroundColor: '#f0fdf4', borderColor: '#dcfce7' },
+  cardHeaderSmall: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 12 },
+  statusLabel: { fontSize: 9, fontFamily: Fonts.bold, letterSpacing: 0.5, textTransform: 'uppercase' },
+  cardTitle: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827', marginBottom: 4 },
+  cardDesc: { fontSize: 13, fontFamily: Fonts.medium, color: '#6b7280', lineHeight: 18 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 16 },
+  materialTag: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f3f4f6', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  scheduledMaterialTag: { backgroundColor: '#dcfce7' },
+  materialText: { fontSize: 11, fontFamily: Fonts.bold, color: '#111827' },
+  creditsBadge: { backgroundColor: '#ecfdf5', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  creditsText: { fontSize: 11, fontFamily: Fonts.bold, color: '#059669' },
+
+  // Footer & FAB
+  loadMoreBtn: { marginHorizontal: 24, marginVertical: 12, paddingVertical: 14, borderRadius: 20, backgroundColor: '#f3f4f6', alignItems: 'center' },
+  loadMoreText: { fontSize: 13, fontFamily: Fonts.bold, color: '#6b7280' },
+  fab: { position: 'absolute', bottom: 100, right: 24, width: 60, height: 60, borderRadius: 30, backgroundColor: '#15803d', alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.3, shadowRadius: 10 },
 });

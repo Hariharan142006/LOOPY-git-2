@@ -6,7 +6,12 @@ interface User {
   name: string;
   email: string;
   role: string;
+  image?: string;
+  phone?: string;
   vehicleType?: string;
+  preferredLanguage?: string;
+  appNotificationsEnabled?: boolean;
+  biometricsEnabled?: boolean;
 }
 
 interface AuthContextType {
@@ -15,6 +20,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (token: string, user: User) => Promise<void>;
+  updateUser: (newUser: Partial<User>) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -51,6 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(newUser);
   };
 
+  const updateUser = async (updates: Partial<User>) => {
+    if (!user) return;
+    const updatedUser = { ...user, ...updates };
+    await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
+    setUser(updatedUser);
+  };
+
   const logout = async () => {
     await SecureStore.deleteItemAsync('userToken');
     await SecureStore.deleteItemAsync('userData');
@@ -66,6 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         isAuthenticated: !!token,
         isLoading,
         login,
+        updateUser,
         logout,
       }}
     >

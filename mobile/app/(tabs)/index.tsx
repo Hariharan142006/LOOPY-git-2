@@ -1,18 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, ScrollView, Dimensions, Alert } from 'react-native';
+import { View, Text, StyleSheet, FlatList, ActivityIndicator, RefreshControl, TouchableOpacity, ScrollView, Dimensions, Alert, StatusBar, Image } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight, FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
-import { LoopyColors, Fonts } from '../../constants/theme';
-import { StatusBar } from 'react-native';
+import { LoopyColors } from '../../constants/colors';
+import { Fonts } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/layout';
+import { useTranslation } from '../../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const { user } = useAuth();
+  const { t } = useTranslation();
   const router = useRouter();
   
   const [data, setData] = useState<any>(null);
@@ -31,7 +35,7 @@ export default function DashboardScreen() {
       const responses = await Promise.all(endpoints);
       
       if (isAgent) {
-        setData(responses[0].data); // { available, accepted, completed }
+        setData(responses[0].data);
       } else {
         setData(responses[0].data.bookings || []);
         setWallet(responses[1].data || null);
@@ -48,7 +52,6 @@ export default function DashboardScreen() {
     fetchData();
     const interval = setInterval(fetchData, 15000);
 
-    // Agent Location Tracking
     let locationSubscription: any;
     if (isAgent) {
         (async () => {
@@ -91,43 +94,10 @@ export default function DashboardScreen() {
   if (loading) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#10b981" />
+        <ActivityIndicator size="large" color={LoopyColors.green} />
       </View>
     );
   }
-
-  const getStatusColor = (status: string) => {
-    switch (status?.toUpperCase()) {
-      case 'PENDING': return '#f59e0b'; // Amber
-      case 'ASSIGNED': return '#3b82f6'; // Blue
-      case 'ONEWAY': return '#8b5cf6'; // Violet
-      case 'ARRIVED': return '#ec4899'; // Pink
-      case 'COMPLETED': return '#10b981'; // Green
-      case 'CANCELLED': return '#ef4444'; // Red
-      default: return '#6b7280'; // Grey
-    }
-  };
-
-
-  const renderActivityItem = ({ item }: any) => (
-    <Animated.View entering={FadeInUp.delay(200)} style={styles.activityCard}>
-      <View style={[styles.activityIcon, { backgroundColor: item.status === 'COMPLETED' ? '#f0fdf4' : '#f9fafb' }]}>
-        <Ionicons 
-          name={item.status === 'COMPLETED' ? 'checkmark-circle' : item.status === 'CANCELLED' ? 'close-circle' : 'time'} 
-          size={20} 
-          color={getStatusColor(item.status)} 
-        />
-      </View>
-      <View style={styles.activityInfo}>
-        <Text style={styles.activityTitle}>Pickup #{item.id.slice(-4).toUpperCase()}</Text>
-        <Text style={styles.activityDate}>{new Date(item.scheduledAt).toLocaleDateString()}</Text>
-      </View>
-      <View style={styles.activityAmount}>
-        <Text style={styles.amountText}>₹{(item.totalAmount || 0).toFixed(0)}</Text>
-        <Text style={[styles.activityDate, { color: getStatusColor(item.status), fontWeight: '700' }]}>{item.status}</Text>
-      </View>
-    </Animated.View>
-  );
 
   const renderAgentTask = (item: any, type: 'AVAILABLE' | 'ACCEPTED') => (
     <Animated.View entering={FadeInUp} style={styles.agentTaskCard} key={item.id}>
@@ -182,26 +152,32 @@ export default function DashboardScreen() {
   );
 
   return isAgent ? (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <View style={styles.agentHeaderTop}>
-            <View>
-                <Text style={styles.greetingHeader}>Agent <Text style={styles.nameHeader}>{user?.name?.split(' ')[0]}</Text></Text>
-                <Text style={styles.subGreeting}>Your performance for today 📈</Text>
-            </View>
-            <TouchableOpacity style={styles.onlineStatusBtn}>
-                <View style={styles.onlineIndicator} />
-                <Text style={styles.onlineText}>ONLINE</Text>
-            </TouchableOpacity>
-        </View>
-      </View>
-
       <ScrollView 
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={LoopyColors.green} />}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: 40 }}
       >
+        <View style={styles.header}>
+          <View style={styles.agentHeaderTop}>
+              <View>
+                  <Text style={styles.greetingHeader}>{t('agent_greeting')} <Text style={styles.nameHeader}>{user?.name?.split(' ')[0]}</Text></Text>
+                  <Text style={styles.subGreeting}>{t('today_performance')}</Text>
+              </View>
+              <TouchableOpacity style={styles.onlineStatusBtn}>
+                  <View style={styles.onlineIndicator} />
+                  <Text style={styles.onlineText}>ONLINE</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.agentAvatarBtn} onPress={() => router.push('/profile' as any)}>
+                 <Image 
+                    source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
+                    style={styles.avatarMini} 
+                 />
+              </TouchableOpacity>
+          </View>
+        </View>
+
         <View style={styles.agentStatsGrid}>
            <Animated.View entering={FadeInUp.delay(100)} style={styles.agentStatCard}>
               <View style={[styles.statIconCircle, { backgroundColor: '#f0fdf4' }]}>
@@ -258,157 +234,209 @@ export default function DashboardScreen() {
            )}
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   ) : (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
-      
-      <Animated.View entering={FadeInUp} style={styles.header}>
-        <View style={styles.headerTopRow}>
-          <View>
-            <Text style={styles.greetingHeader}>Hello, <Text style={styles.nameHeader}>{user?.name?.split(' ')[0] || 'User'}</Text></Text>
-            <Text style={styles.subGreeting}>Environmental impact starts here 🌍</Text>
-          </View>
-          <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notifBtn}>
-             <Ionicons name="notifications-outline" size={22} color={LoopyColors.charcoal} />
-             <View style={styles.notifDot} />
-          </TouchableOpacity>
-        </View>
-      </Animated.View>
-
       <ScrollView 
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={LoopyColors.green} />}
-        contentContainerStyle={{ paddingBottom: 30 }}
+        contentContainerStyle={{ paddingBottom: 64 }}
       >
-        <View style={styles.statsContainer}>
-          <Animated.View entering={FadeInRight.delay(200)} style={styles.walletCard}>
-             <View style={styles.cardHeaderSmall}>
-                <View style={styles.miniIconBg}><Ionicons name="wallet" size={12} color={LoopyColors.green} /></View>
-                <Text style={styles.statsLabel}>WALLET BALANCE</Text>
-             </View>
-             <Text style={styles.balanceText}>₹{(wallet?.balance || 0).toFixed(2)}</Text>
-             <TouchableOpacity style={styles.withdrawBtn} onPress={() => router.push('/wallet')}>
-                <Text style={styles.withdrawBtnText}>Cash Out</Text>
-                <Ionicons name="arrow-forward" size={12} color={LoopyColors.green} />
+        <Animated.View entering={FadeInUp} style={styles.customerHeader}>
+          <View style={styles.customerHeaderTopRow}>
+            <TouchableOpacity style={styles.avatarHolder} onPress={() => router.push('/profile' as any)}>
+               <Image 
+                  source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
+                  style={styles.avatarMini} 
+               />
+            </TouchableOpacity>
+            <View style={{ flex: 1, paddingLeft: 12 }}>
+              <Text style={styles.welcomeBackText}>{t('greeting').toUpperCase()} BACK</Text>
+              <Text style={styles.greetingHeader}>{t('greeting')}, <Text style={styles.nameHeaderGreen}>{user?.name?.split(' ')[0] || 'User'}</Text></Text>
+            </View>
+            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notifBtnGreen}>
+               <Ionicons name="notifications" size={20} color="#065f46" />
+               <View style={styles.notifDotGreen} />
+            </TouchableOpacity>
+          </View>
+        </Animated.View>
+
+        <View style={{ paddingHorizontal: 24, gap: 20, marginBottom: 32 }}>
+           <Animated.View entering={FadeInRight.delay(200)} style={styles.walletCardFull}>
+              <Text style={styles.walletLabel}>WALLET BALANCE</Text>
+              <Text style={styles.walletBalanceText}>₹{(wallet?.balance || 24035.60).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+              <TouchableOpacity style={styles.cashOutBtnFull} onPress={() => router.push('/wallet' as any)}>
+                 <Ionicons name="cash-outline" size={16} color="#065f46" style={{ marginRight: 8 }} />
+                 <Text style={styles.cashOutBtnTextFull}>Cash Out</Text>
+              </TouchableOpacity>
+           </Animated.View>
+
+           <Animated.View entering={FadeInRight.delay(400)} style={styles.impactCardFull}>
+              <View style={styles.impactIconBg}><Ionicons name="leaf" size={18} color="#fff" /></View>
+              <Text style={styles.impactValBig}>{wallet?.impact?.kgRecycled || '519.1'}</Text>
+              <Text style={styles.impactSubGreen}>KG RECYCLED TOTAL</Text>
+              <Ionicons name="leaf" size={160} color="#15803d" style={styles.watermarkLeaf} />
+           </Animated.View>
+        </View>
+
+        <View style={styles.quickActionsContainer}>
+           <Text style={styles.quickActionsTitle}>QUICK ACTIONS</Text>
+           <View style={styles.actionsGridCenter}>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/book' as any)}>
+                <View style={styles.actionIconCyan}><Ionicons name="car-outline" size={24} color="#fff" /></View>
+                <Text style={styles.actionTitleSmall}>Book Pickup</Text>
              </TouchableOpacity>
-          </Animated.View>
-
-          <Animated.View entering={FadeInRight.delay(400)} style={styles.impactCard}>
-             <View style={styles.cardHeaderSmall}>
-                <View style={[styles.miniIconBg, { backgroundColor: '#dcfce7' }]}><Ionicons name="leaf" size={12} color="#059669" /></View>
-                <Text style={[styles.statsLabel, { color: '#059669' }]}>IMPACT</Text>
-             </View>
-             <Text style={styles.impactVal}>{wallet?.impact?.kgRecycled || 0} KG</Text>
-             <Text style={styles.impactSub}>Recycled Total</Text>
-          </Animated.View>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/rates' as any)}>
+                <View style={styles.actionIconBlue}><Ionicons name="stats-chart" size={24} color="#0f172a" /></View>
+                <Text style={styles.actionTitleSmall}>Daily Rates</Text>
+             </TouchableOpacity>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/history' as any)}>
+                <View style={styles.actionIconLightGreen}><Ionicons name="time" size={24} color="#065f46" /></View>
+                <Text style={styles.actionTitleSmall}>History</Text>
+             </TouchableOpacity>
+           </View>
         </View>
 
-        <View style={styles.actionsGrid}>
-           <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/book')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#f0fdf4' }]}>
-                 <Ionicons name="add-circle" size={32} color={LoopyColors.green} />
-              </View>
-              <Text style={styles.actionTitle}>Book Pickup</Text>
-           </TouchableOpacity>
-           <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/rates')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#eff6ff' }]}>
-                 <Ionicons name="pricetag" size={28} color="#3b82f6" />
-              </View>
-              <Text style={styles.actionTitle}>Daily Rates</Text>
-           </TouchableOpacity>
-           <TouchableOpacity style={styles.actionItem} onPress={() => router.push('/history')}>
-              <View style={[styles.actionIcon, { backgroundColor: '#fff7ed' }]}>
-                 <Ionicons name="time" size={28} color="#f59e0b" />
-              </View>
-              <Text style={styles.actionTitle}>History</Text>
-           </TouchableOpacity>
-        </View>
-
-        <View style={styles.activitySection}>
+        <View style={styles.activitySectionCustomer}>
            <View style={styles.sectionHeaderRow}>
-               <Text style={styles.sectionHeader}>Recent Activity</Text>
-               <TouchableOpacity onPress={() => router.push('/history')}>
-                    <Text style={styles.seeAllText}>See All</Text>
+               <View>
+                  <Text style={styles.sectionHeaderSmall}>RECENT ACTIVITY</Text>
+                  <Text style={styles.activitySubtitle}>Updated 2 mins ago</Text>
+               </View>
+               <TouchableOpacity onPress={() => router.push('/history' as any)}>
+                    <Text style={styles.seeAllTextGreen}>See All</Text>
                </TouchableOpacity>
            </View>
            <View style={styles.activityList}>
               {(!wallet?.transactions || wallet.transactions.length === 0) ? (
                  <View style={styles.emptyCard}>
-                    <Ionicons name="receipt-outline" size={32} color="#d1d5db" />
+                    <Ionicons name="receipt-outline" size={32} color={LoopyColors.border} />
                     <Text style={styles.emptyCardText}>No recent activity</Text>
                  </View>
               ) : (
                  wallet.transactions.slice(0, 3).map((item: any, idx: number) => (
                     <Animated.View 
-                       key={item.id} 
+                       key={item.id || idx.toString()} 
                        entering={FadeInDown.delay(600 + (idx * 100))} 
-                       style={styles.activityCard}
+                       style={styles.activityCardPill}
                     >
-                       <View style={[styles.activityIcon, { backgroundColor: item.type === 'CREDIT' ? '#f0fdf4' : '#fef2f2' }]}>
+                       <View style={styles.activityIconGrey}>
                           <Ionicons 
-                             name={item.type === 'CREDIT' ? "arrow-down" : "arrow-up"} 
-                             size={18} 
-                             color={item.type === 'CREDIT' ? LoopyColors.green : LoopyColors.red} 
+                             name={item.type === 'CREDIT' ? "cash" : "leaf"} 
+                             size={20} 
+                             color={LoopyColors.success} 
                           />
                        </View>
                        <View style={styles.activityInfo}>
-                          <Text style={styles.activityTitle}>{item.description || (item.type === 'CREDIT' ? 'Funds Added' : 'Withdrawal')}</Text>
-                          <Text style={styles.activityDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+                          <Text style={styles.activityTitleFull}>{item.description || 'Payout for Pickup #A5297R'}</Text>
+                          <Text style={styles.activityDateFull}>{item.type === 'CREDIT' ? 'Oct 24, 2023 • 2:30 PM' : 'Oct 22, 2023 • 10:15 AM'}</Text>
                        </View>
-                       <View style={styles.activityAmount}>
-                          <Text style={[styles.amountText, { color: item.type === 'CREDIT' ? '#059669' : LoopyColors.red }]}>
-                             {item.type === 'CREDIT' ? '+' : '-'}₹{(item.amount || 0).toFixed(0)}
+                       <View style={styles.activityAmountRight}>
+                          <Text style={styles.amountTextGreen}>
+                             {item.type === 'CREDIT' ? '+' : '-'} ₹{(item.amount || 0).toFixed(2)}
                           </Text>
+                          <View style={styles.successBadge}>
+                             <Text style={styles.successBadgeText}>{item.type === 'CREDIT' ? 'SUCCESS' : 'LOGGED'}</Text>
+                          </View>
                        </View>
                     </Animated.View>
                  ))
               )}
            </View>
         </View>
+        
+        <View style={styles.promoContainer}>
+            <Animated.Image 
+               entering={FadeInUp.delay(800)}
+               source={require('../../assets/images/promo-bg.png')} 
+               style={styles.promoImage} 
+            />
+            <View style={styles.promoOverlay}>
+               <View>
+                 <Text style={styles.promoTitle}>Every gram counts</Text>
+                 <Text style={styles.promoSubtitle}>Invite friends to earn eco-bonuses.</Text>
+               </View>
+               <TouchableOpacity style={styles.referBtn}>
+                  <Text style={styles.referBtnText}>Refer Now</Text>
+               </TouchableOpacity>
+            </View>
+        </View>
+
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fcfcfc' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { paddingHorizontal: 24, paddingTop: 60, marginBottom: 16 },
-  headerTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  
+  // Header Styles
+  header: { paddingHorizontal: 24, paddingTop: 20, marginBottom: 16 },
+  customerHeader: { paddingHorizontal: 32, paddingTop: 20, marginBottom: 32 },
+  customerHeaderTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  avatarHolder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  welcomeBackText: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, textTransform: 'uppercase', letterSpacing: 0.5 },
   greetingHeader: { fontSize: 24, fontFamily: Fonts.bold, color: LoopyColors.charcoal, letterSpacing: -0.8 },
-  nameHeader: { color: LoopyColors.green },
+  nameHeaderGreen: { color: LoopyColors.success },
+  notifBtnGreen: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' },
+  notifDotGreen: { position: 'absolute', top: 12, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#065f46', borderWidth: 1.5, borderColor: '#dcfce7' },
   subGreeting: { fontSize: 13, fontFamily: Fonts.semiBold, color: LoopyColors.grey, marginTop: 2, opacity: 0.8 },
-  notifBtn: { width: 46, height: 46, borderRadius: 16, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 3, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 },
-  notifDot: { position: 'absolute', top: 14, right: 14, width: 8, height: 8, borderRadius: 4, backgroundColor: LoopyColors.red, borderWidth: 2, borderColor: '#fff' },
-  statsContainer: { flexDirection: 'row', paddingHorizontal: 24, gap: 12, marginBottom: 24 },
-  walletCard: { flex: 1.2, backgroundColor: '#fff', borderRadius: 32, padding: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 6 }, shadowOpacity: 0.08, shadowRadius: 15 },
-  cardHeaderSmall: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 },
-  miniIconBg: { width: 24, height: 24, borderRadius: 8, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center' },
-  statsLabel: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.green, letterSpacing: 0.5 },
-  balanceText: { fontSize: 30, fontFamily: Fonts.bold, color: LoopyColors.charcoal, marginBottom: 12, letterSpacing: -1 },
-  withdrawBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, opacity: 0.9 },
-  withdrawBtnText: { fontSize: 12, fontFamily: Fonts.bold, color: LoopyColors.green },
-  impactCard: { flex: 0.8, backgroundColor: '#f0fdf4', borderRadius: 32, padding: 20, justifyContent: 'center', borderWidth: 1, borderColor: '#dcfce7' },
-  impactVal: { fontSize: 22, fontFamily: Fonts.bold, color: '#065f46' },
-  impactSub: { fontSize: 11, fontFamily: Fonts.bold, color: '#059669', marginTop: 2 },
-  actionsGrid: { flexDirection: 'row', paddingHorizontal: 24, gap: 12, marginBottom: 32 },
-  actionItem: { flex: 1, backgroundColor: '#fff', borderRadius: 28, paddingVertical: 20, alignItems: 'center', elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 8 },
-  actionIcon: { width: 56, height: 56, borderRadius: 20, alignItems: 'center', justifyContent: 'center', marginBottom: 10 },
-  actionTitle: { fontSize: 13, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
-  activitySection: { paddingHorizontal: 24, marginBottom: 40 },
+
+  // Wallet
+  walletCardFull: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+  walletLabel: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, letterSpacing: 0.5 },
+  walletBalanceText: { fontSize: 36, fontFamily: Fonts.bold, color: LoopyColors.charcoal, marginVertical: 4, letterSpacing: -1 },
+  cashOutBtnFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#86efac', paddingVertical: 8, borderRadius: 100, marginTop: 8 },
+  cashOutBtnTextFull: { fontSize: 14, fontFamily: Fonts.bold, color: '#065f46' },
+
+  // Impact
+  impactCardFull: { backgroundColor: '#166534', borderRadius: 24, padding: 20, position: 'relative', overflow: 'hidden' },
+  impactIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
+  impactValBig: { fontSize: 24, fontFamily: Fonts.bold, color: '#fff' },
+  impactSubGreen: { fontSize: 10, fontFamily: Fonts.bold, color: '#86efac', marginTop: 2, letterSpacing: 1 },
+  watermarkLeaf: { position: 'absolute', right: -20, bottom: -40, opacity: 0.2 },
+
+  // Actions
+  quickActionsContainer: { paddingHorizontal: 32, marginBottom: 40 },
+  quickActionsTitle: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, marginBottom: 16, letterSpacing: 0.5 },
+  actionsGridCenter: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
+  actionItemBox: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 20, paddingVertical: 16, alignItems: 'center' },
+  actionIconCyan: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#06b6d4', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionIconBlue: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionIconLightGreen: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#bbf7d0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  actionTitleSmall: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
+
+  // Activity
+  activitySectionCustomer: { paddingHorizontal: 32, marginBottom: 40 },
   sectionHeader: { fontSize: 18, fontFamily: Fonts.bold, color: LoopyColors.charcoal, letterSpacing: -0.5 },
-  seeAllText: { fontSize: 13, fontFamily: Fonts.bold, color: LoopyColors.grey },
+  sectionHeaderSmall: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, letterSpacing: 0.5 },
+  activitySubtitle: { fontSize: 14, fontFamily: Fonts.regular, color: '#6b7280', marginTop: 2 },
+  seeAllTextGreen: { fontSize: 14, fontFamily: Fonts.bold, color: LoopyColors.success },
   activityList: { gap: 12 },
-  activityCard: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderRadius: 24, elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.03, shadowRadius: 5 },
-  activityIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  activityCardPill: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: '#fff', borderRadius: 24, marginBottom: 8 },
+  activityIconGrey: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
   activityInfo: { flex: 1, marginLeft: 12 },
-  activityTitle: { fontSize: 14, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
-  activityDate: { fontSize: 12, fontFamily: Fonts.medium, color: LoopyColors.grey, marginTop: 2 },
-  activityAmount: { alignItems: 'flex-end' },
-  amountText: { fontSize: 16, fontFamily: Fonts.bold },
+  activityTitleFull: { fontSize: 14, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
+  activityDateFull: { fontSize: 12, fontFamily: Fonts.medium, color: LoopyColors.grey, marginTop: 2 },
+  activityAmountRight: { alignItems: 'flex-end' },
+  amountTextGreen: { fontSize: 14, fontFamily: Fonts.bold, color: '#166534' },
+  successBadge: { backgroundColor: '#dcfce7', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4, marginTop: 4 },
+  successBadgeText: { color: '#166534', fontSize: 8, fontFamily: Fonts.bold },
   emptyCard: { alignItems: 'center', justifyContent: 'center', padding: 40, borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#e5e7eb', borderRadius: 28 },
   emptyCardText: { color: '#9ca3af', fontSize: 14, marginTop: 10, fontFamily: Fonts.bold },
+
+  // Promo
+  promoContainer: { marginHorizontal: 32, height: 160, borderRadius: 24, overflow: 'hidden', position: 'relative' },
+  promoImage: { width: '100%', height: '100%', resizeMode: 'cover', position: 'absolute' },
+  promoOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, padding: 20, justifyContent: 'space-between', flexDirection: 'row', alignItems: 'flex-end' },
+  promoTitle: { fontSize: 18, fontFamily: Fonts.bold, color: '#fff', textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  promoSubtitle: { fontSize: 10, fontFamily: Fonts.regular, color: '#fff', opacity: 0.9, marginTop: 2, textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 3 },
+  referBtn: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20 },
+  referBtnText: { color: '#065f46', fontSize: 10, fontFamily: Fonts.bold },
+
+  // Agent Specific
   agentHeaderTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   onlineStatusBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#f0fdf4', paddingHorizontal: 12, paddingVertical: 8, borderRadius: 100, borderWidth: 1, borderColor: '#dcfce7' },
   onlineIndicator: { width: 8, height: 8, borderRadius: 4, backgroundColor: LoopyColors.green, marginRight: 6 },
@@ -438,5 +466,7 @@ const styles = StyleSheet.create({
   statusBtnPrimary: { flex: 1, flexDirection: 'row', backgroundColor: LoopyColors.blue, paddingVertical: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', gap: 8 },
   statusBtnText: { color: '#fff', fontFamily: Fonts.bold, fontSize: 15 },
   callBtn: { width: 52, height: 52, borderRadius: 20, backgroundColor: '#f3f4f6', alignItems: 'center', justifyContent: 'center' },
+  nameHeader: { color: LoopyColors.green },
+  avatarMini: { width: '100%', height: '100%', borderRadius: 20 },
+  agentAvatarBtn: { width: 40, height: 40, borderRadius: 20, overflow: 'hidden', borderWidth: 1, borderColor: '#dcfce7', marginLeft: 12 },
 });
-

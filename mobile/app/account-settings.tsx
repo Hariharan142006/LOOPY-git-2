@@ -2,12 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Switch, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 import * as LocalAuthentication from 'expo-local-authentication';
 import { api } from '../utils/api';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function AccountSettingsScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   
@@ -112,7 +114,7 @@ export default function AccountSettingsScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Account Settings</Text>
+        <Text style={styles.headerTitle}>{t('account_settings_header')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -122,7 +124,7 @@ export default function AccountSettingsScreen() {
         ) : (
           <>
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Profile Details</Text>
+              <Text style={styles.sectionTitle}>{t('profile_details_section')}</Text>
               <View style={styles.group}>
                 <View style={styles.profileInfo}>
                   <View style={styles.profileBadge}>
@@ -138,16 +140,16 @@ export default function AccountSettingsScreen() {
             </View>
 
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Security</Text>
+              <Text style={styles.sectionTitle}>{t('security_section')}</Text>
               <View style={styles.group}>
                 <SettingItem 
                   icon="lock-closed-outline" 
-                  label="Change Password" 
+                  label={t('change_password')} 
                   onPress={() => setPassModalVisible(true)} 
                 />
                 <SettingItem 
                   icon="finger-print-outline" 
-                  label="Biometric Authentication" 
+                  label={t('biometric_auth')} 
                   rightElement={
                     <Switch 
                       value={profile?.biometricsEnabled || false} 
@@ -162,22 +164,22 @@ export default function AccountSettingsScreen() {
         )}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Data & Privacy</Text>
+          <Text style={styles.sectionTitle}>{t('data_privacy_section')}</Text>
           <View style={styles.group}>
             <SettingItem 
               icon="download-outline" 
-              label="Export My Data" 
+              label={t('export_my_data')} 
               onPress={() => handleAction('Export Data')} 
             />
             <SettingItem 
               icon="trash-outline" 
-              label="Delete Account" 
+              label={t('delete_account')} 
               destructive 
               onPress={() => {
                 Alert.alert(
-                  'Delete Account',
-                  'Are you sure? This action is permanent and cannot be undone.',
-                  [{ text: 'Cancel', style: 'cancel' }, { text: 'Delete', style: 'destructive' }]
+                  t('delete_account'),
+                  t('delete_account_confirm'),
+                  [{ text: t('cancel'), style: 'cancel' }, { text: t('delete_account'), style: 'destructive' }]
                 );
               }} 
             />
@@ -238,7 +240,7 @@ export default function AccountSettingsScreen() {
               onPress={handleChangePassword}
               disabled={passLoading}
             >
-              <Text style={styles.saveBtnText}>{passLoading ? 'Updating...' : 'Update Password'}</Text>
+              <Text style={styles.saveBtnText}>{passLoading ? t('updating') : t('update_password')}</Text>
             </TouchableOpacity>
           </View>
         </View>

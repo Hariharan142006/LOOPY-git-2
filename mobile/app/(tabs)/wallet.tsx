@@ -5,12 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import QRCode from 'react-native-qrcode-svg';
-import { LoopyColors } from '../../constants/theme';
+import { Colors, LoopyColors } from '../../constants/colors';
+import { Fonts, FontSizes } from '../../constants/typography';
+import { Spacing, BorderRadius } from '../../constants/layout';
+import { useTranslation } from '../../hooks/useTranslation';
+
 
 const { width } = Dimensions.get('window');
 
 export default function WalletScreen() {
   const { user } = useAuth();
+  const { t, currentLanguage } = useTranslation();
   const [wallet, setWallet] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -39,15 +44,15 @@ export default function WalletScreen() {
 
   const handleWithdraw = () => {
     if ((wallet?.balance || 0) < 100) {
-      Alert.alert('Low Balance', 'Minimum withdrawal amount is ₹100.');
+      Alert.alert(t('error'), 'Minimum withdrawal amount is ₹100.');
       return;
     }
     Alert.alert(
-        'Confirm Withdrawal', 
+        t('confirm'), 
         `₹${Number(wallet.balance).toFixed(2)} will be transferred to your linked UPI/Bank account.`,
         [
-            { text: 'Cancel', style: 'cancel' },
-            { text: 'Confirm', onPress: () => Alert.alert('Success', 'Transfer initiated! Funds will arrive within 24 hours.') }
+            { text: t('cancel'), style: 'cancel' },
+            { text: t('confirm'), onPress: () => Alert.alert(t('success'), 'Transfer initiated! Funds will arrive within 24 hours.') }
         ]
     );
   };
@@ -66,7 +71,7 @@ export default function WalletScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-         <Text style={styles.headerTitle}>My Wallet</Text>
+         <Text style={styles.headerTitle}>{t('my_wallet')}</Text>
          <TouchableOpacity style={styles.helpBtn}>
             <Ionicons name="help-circle-outline" size={24} color={LoopyColors.charcoal} />
          </TouchableOpacity>
@@ -75,10 +80,9 @@ export default function WalletScreen() {
       <ScrollView 
           showsVerticalScrollIndicator={false}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={LoopyColors.green} />}
-          contentContainerStyle={{ paddingBottom: 40 }}
+          contentContainerStyle={{ paddingBottom: Spacing['4xl'] }}
       >
         <View style={styles.content}>
-          {/* Main Balance Card - Dark Mode Aesthetic */}
           <Animated.View entering={FadeInUp} style={styles.balanceCard}>
              <View style={styles.cardHeader}>
                 <View style={styles.brandBadge}>
@@ -88,12 +92,12 @@ export default function WalletScreen() {
                 <Ionicons name="wifi" size={20} color="#ffffff30" />
              </View>
 
-             <Text style={styles.balanceLabel}>TOTAL BALANCE</Text>
+             <Text style={styles.balanceLabel}>{t('total_balance')}</Text>
              <Text style={styles.balanceVal}>₹{Number(wallet?.balance || 0).toFixed(2)}</Text>
              
              <View style={styles.cardFooter}>
                 <TouchableOpacity style={styles.withdrawBtn} onPress={handleWithdraw}>
-                   <Text style={styles.withdrawText}>Withdraw Now</Text>
+                   <Text style={styles.withdrawText}>{t('withdraw_now')}</Text>
                    <Ionicons name="arrow-forward" size={16} color={LoopyColors.charcoal} />
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.qrToggle} onPress={() => setQrVisible(!qrVisible)}>
@@ -102,16 +106,15 @@ export default function WalletScreen() {
              </View>
           </Animated.View>
 
-          {/* QR Section - Interactive */}
           {qrVisible && (
               <Animated.View entering={FadeInDown} style={styles.qrContainer}>
                   <View style={styles.qrHeader}>
-                     <Text style={styles.qrTitle}>Personal Payment QR</Text>
+                     <Text style={styles.qrTitle}>{t('personal_qr')}</Text>
                      <TouchableOpacity onPress={() => setQrVisible(false)}>
                         <Ionicons name="close-circle" size={24} color={LoopyColors.grey} />
                      </TouchableOpacity>
                   </View>
-                  <Text style={styles.qrSubtitle}>Agent will scan this to credit your wallet instantly</Text>
+                  <Text style={styles.qrSubtitle}>{t('qr_subtitle')}</Text>
                   <View style={styles.qrWrapper}>
                       <QRCode
                           value={JSON.stringify({ userId: user?.id, type: 'PAYMENT_RECEIVE', name: user?.name })}
@@ -127,7 +130,6 @@ export default function WalletScreen() {
               </Animated.View>
           )}
 
-          {/* Detailed Stats */}
           <View style={styles.statsRow}>
               <Animated.View entering={FadeInUp.delay(200)} style={styles.statBox}>
                   <View style={[styles.statIconBox, { backgroundColor: '#f0fdf4' }]}>
@@ -135,7 +137,7 @@ export default function WalletScreen() {
                   </View>
                   <View>
                      <Text style={styles.statVal}>{wallet?.impact?.kgRecycled || 0} KG</Text>
-                     <Text style={styles.statLabel}>Total Recycled</Text>
+                     <Text style={styles.statLabel}>{t('total_recycled')}</Text>
                   </View>
               </Animated.View>
               <Animated.View entering={FadeInUp.delay(300)} style={styles.statBox}>
@@ -144,42 +146,59 @@ export default function WalletScreen() {
                   </View>
                   <View>
                      <Text style={styles.statVal}>₹{Number(lifetimeEarnings).toFixed(2)}</Text>
-                     <Text style={styles.statLabel}>Lifetime Earning</Text>
+                     <Text style={styles.statLabel}>{t('lifetime_earning')}</Text>
                   </View>
               </Animated.View>
           </View>
 
-          {/* Transactions List */}
           <View style={styles.historySection}>
               <View style={styles.sectionHeaderRow}>
-                 <Text style={styles.sectionHeader}>History</Text>
-                 <TouchableOpacity><Text style={styles.viewAllText}>View All</Text></TouchableOpacity>
+                 <Text style={styles.sectionHeader}>{t('history')}</Text>
+                 <TouchableOpacity><Text style={styles.viewAllText}>{t('see_all')}</Text></TouchableOpacity>
               </View>
 
               {(!wallet?.transactions || wallet.transactions.length === 0) ? (
                   <View style={styles.emptyCard}>
                       <Ionicons name="receipt-outline" size={40} color={LoopyColors.lightGrey} />
-                      <Text style={styles.emptyText}>No activity recorded yet.</Text>
+                      <Text style={styles.emptyText}>{t('no_activity')}</Text>
                   </View>
               ) : (
-                  wallet.transactions.map((t: any, idx: number) => (
-                      <Animated.View key={t.id} entering={SlideInRight.delay(idx * 100)} style={styles.transactionCard}>
-                          <View style={[styles.itemIcon, { backgroundColor: t.type === 'CREDIT' ? '#f0fdf4' : '#fef2f2' }]}>
-                              <Ionicons 
-                                  name={t.type === 'CREDIT' ? 'arrow-down' : 'arrow-up'} 
-                                  size={18} 
-                                  color={t.type === 'CREDIT' ? LoopyColors.green : LoopyColors.red} 
-                              />
+                  wallet.transactions.map((t_item: any, idx: number) => {
+                    const isCredit = t_item.type === 'CREDIT';
+                    const description = t_item.description || (isCredit ? t('pickup_payout') : t('bank_transfer'));
+                    
+                    const getIconConfig = () => {
+                      const desc = description.toLowerCase();
+                      if (desc.includes('plastic')) return { name: 'sync', color: '#16a34a', bg: '#f0fdf4' };
+                      if (desc.includes('bonus') || desc.includes('reward')) return { name: 'flash', color: '#16a34a', bg: '#f0fdf4' };
+                      if (desc.includes('food')) return { name: 'restaurant', color: '#16a34a', bg: '#f0fdf4' };
+                      if (desc.includes('transfer') || desc.includes('withdrawal')) return { name: 'wallet', color: '#6b7280', bg: '#f3f4f6' };
+                      return { name: isCredit ? 'add-circle' : 'remove-circle', color: isCredit ? '#16a34a' : '#6b7280', bg: isCredit ? '#f0fdf4' : '#f3f4f6' };
+                    };
+
+                    const iconConfig: any = getIconConfig();
+
+                    return (
+                      <Animated.View key={t_item.id} entering={SlideInRight.delay(idx * 100)} style={styles.transactionCard}>
+                          <View style={[styles.itemIcon, { backgroundColor: iconConfig.bg }]}>
+                              <Ionicons name={iconConfig.name} size={20} color={iconConfig.color} />
                           </View>
                           <View style={styles.itemInfo}>
-                              <Text style={styles.itemTitle}>{t.description || (t.type === 'CREDIT' ? 'Pickup Credit' : 'Balance Withdrawal')}</Text>
-                              <Text style={styles.itemDate}>{new Date(t.createdAt).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}</Text>
+                              <Text style={styles.itemTitle}>{description}</Text>
+                              <Text style={styles.itemDate}>
+                                {new Date(t_item.createdAt).toLocaleDateString(currentLanguage, { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {t_item.weight ? ` • ${t_item.weight} kg` : (isCredit && !t_item.description ? ' • Reward' : '')}
+                              </Text>
                           </View>
-                          <Text style={[styles.itemAmount, { color: t.type === 'CREDIT' ? '#059669' : LoopyColors.red }]}>
-                               {t.type === 'CREDIT' ? '+' : '-'}₹{Number(t.amount).toFixed(2)}
-                          </Text>
+                          <View style={styles.amountContainer}>
+                             <Text style={[styles.itemAmount, { color: isCredit ? '#059669' : '#111827' }]}>
+                                {isCredit ? '+' : '-'}₹{Number(t_item.amount).toFixed(2)}
+                             </Text>
+                             <Text style={styles.statusLabel}>{t('completed')}</Text>
+                          </View>
                       </Animated.View>
-                  ))
+                    );
+                  })
               )}
           </View>
         </View>
@@ -190,43 +209,45 @@ export default function WalletScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: LoopyColors.white },
-  header: { paddingTop: 60, paddingHorizontal: 24, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
-  headerTitle: { fontSize: 24, fontWeight: '800', color: LoopyColors.charcoal },
-  helpBtn: { width: 44, height: 44, borderRadius: 12, backgroundColor: LoopyColors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: LoopyColors.lightGrey },
+  header: { paddingTop: 60, paddingHorizontal: Spacing['2xl'], flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  headerTitle: { fontSize: FontSizes['3xl'], fontWeight: '800', color: LoopyColors.charcoal },
+  helpBtn: { width: 44, height: 44, borderRadius: BorderRadius.lg, backgroundColor: LoopyColors.white, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: LoopyColors.lightGrey },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  content: { padding: 24, paddingTop: 10 },
-  balanceCard: { backgroundColor: LoopyColors.charcoal, borderRadius: 32, padding: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 },
+  content: { padding: Spacing['2xl'], paddingTop: 10 },
+  balanceCard: { backgroundColor: LoopyColors.charcoal, borderRadius: 32, padding: Spacing['2xl'], shadowColor: '#000', shadowOffset: { width: 0, height: 12 }, shadowOpacity: 0.15, shadowRadius: 24, elevation: 8 },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
-  brandBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff15', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8, gap: 6 },
-  brandBadgeText: { color: LoopyColors.white, fontSize: 10, fontWeight: '800', letterSpacing: 1 },
-  balanceLabel: { color: '#9ca3af', fontSize: 12, fontWeight: '800', letterSpacing: 1.5, marginBottom: 8 },
+  brandBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#ffffff15', paddingHorizontal: 10, paddingVertical: Spacing.xs, borderRadius: BorderRadius.md, gap: 6 },
+  brandBadgeText: { color: LoopyColors.white, fontSize: FontSizes.xs, fontWeight: '800', letterSpacing: 1 },
+  balanceLabel: { color: LoopyColors.textLight, fontSize: FontSizes.sm, fontWeight: '800', letterSpacing: 1.5, marginBottom: Spacing.sm },
   balanceVal: { color: LoopyColors.white, fontSize: 44, fontWeight: '900' },
-  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 32 },
-  withdrawBtn: { backgroundColor: LoopyColors.green, paddingHorizontal: 20, paddingVertical: 14, borderRadius: 16, flexDirection: 'row', alignItems: 'center', gap: 8 },
-  withdrawText: { color: LoopyColors.charcoal, fontWeight: '800', fontSize: 14 },
-  qrToggle: { width: 48, height: 48, borderRadius: 16, backgroundColor: '#ffffff15', alignItems: 'center', justifyContent: 'center' },
-  qrContainer: { marginTop: 24, backgroundColor: '#f9fafb', borderRadius: 32, padding: 24, borderWidth: 1, borderColor: LoopyColors.lightGrey, alignItems: 'center' },
-  qrHeader: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: 16 },
-  qrTitle: { fontSize: 16, fontWeight: '800', color: LoopyColors.charcoal },
-  qrSubtitle: { fontSize: 13, color: LoopyColors.grey, textAlign: 'center', marginBottom: 24, lineHeight: 18 },
-  qrWrapper: { backgroundColor: '#fff', padding: 20, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
-  qrFooter: { flexDirection: 'row', alignItems: 'center', marginTop: 20, gap: 6 },
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: Spacing['3xl'] },
+  withdrawBtn: { backgroundColor: LoopyColors.green, paddingHorizontal: Spacing.xl, paddingVertical: 14, borderRadius: BorderRadius.xl, flexDirection: 'row', alignItems: 'center', gap: Spacing.sm },
+  withdrawText: { color: LoopyColors.charcoal, fontWeight: '800', fontSize: FontSizes.md },
+  qrToggle: { width: 48, height: 48, borderRadius: BorderRadius.xl, backgroundColor: '#ffffff15', alignItems: 'center', justifyContent: 'center' },
+  qrContainer: { marginTop: Spacing['2xl'], backgroundColor: '#f9fafb', borderRadius: 32, padding: Spacing['2xl'], borderWidth: 1, borderColor: LoopyColors.lightGrey, alignItems: 'center' },
+  qrHeader: { flexDirection: 'row', justifyContent: 'space-between', width: '100%', alignItems: 'center', marginBottom: Spacing.lg },
+  qrTitle: { fontSize: FontSizes.lg, fontWeight: '800', color: LoopyColors.charcoal },
+  qrSubtitle: { fontSize: 13, color: LoopyColors.grey, textAlign: 'center', marginBottom: Spacing['2xl'], lineHeight: 18 },
+  qrWrapper: { backgroundColor: '#fff', padding: Spacing.xl, borderRadius: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 12, elevation: 2 },
+  qrFooter: { flexDirection: 'row', alignItems: 'center', marginTop: Spacing.xl, gap: 6 },
   qrSecureText: { fontSize: 11, fontWeight: '700', color: LoopyColors.grey, letterSpacing: 0.5 },
-  statsRow: { flexDirection: 'row', gap: 12, marginTop: 24 },
-  statBox: { flex: 1, backgroundColor: LoopyColors.white, borderRadius: 24, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 12, borderWidth: 1, borderColor: LoopyColors.lightGrey },
-  statIconBox: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  statVal: { fontSize: 16, fontWeight: '800', color: LoopyColors.charcoal },
-  statLabel: { fontSize: 10, fontWeight: '600', color: LoopyColors.grey },
-  historySection: { marginTop: 32 },
-  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
-  sectionHeader: { fontSize: 20, fontWeight: '800', color: LoopyColors.charcoal },
-  viewAllText: { fontSize: 14, fontWeight: '700', color: LoopyColors.green },
-  transactionCard: { flexDirection: 'row', alignItems: 'center', padding: 14, backgroundColor: LoopyColors.white, borderRadius: 20, borderWidth: 1, borderColor: LoopyColors.lightGrey, marginBottom: 12 },
-  itemIcon: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  itemInfo: { flex: 1, marginLeft: 12 },
-  itemTitle: { fontSize: 14, fontWeight: '700', color: LoopyColors.charcoal },
-  itemDate: { fontSize: 11, color: LoopyColors.grey, marginTop: 2 },
-  itemAmount: { fontSize: 16, fontWeight: '900', textAlign: 'right', minWidth: 80 },
-  emptyCard: { alignItems: 'center', paddingVertical: 40, borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 24 },
-  emptyText: { color: LoopyColors.grey, marginTop: 12, fontSize: 14, fontWeight: '500' },
+  statsRow: { flexDirection: 'row', gap: Spacing.md, marginTop: Spacing['2xl'] },
+  statBox: { flex: 1, backgroundColor: LoopyColors.white, borderRadius: 24, padding: Spacing.lg, flexDirection: 'row', alignItems: 'center', gap: Spacing.md, borderWidth: 1, borderColor: LoopyColors.lightGrey },
+  statIconBox: { width: 40, height: 40, borderRadius: BorderRadius.lg, alignItems: 'center', justifyContent: 'center' },
+  statVal: { fontSize: FontSizes.lg, fontWeight: '800', color: LoopyColors.charcoal },
+  statLabel: { fontSize: FontSizes.xs, fontWeight: '600', color: LoopyColors.grey },
+  historySection: { marginTop: Spacing['3xl'] },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: Spacing.lg },
+  sectionHeader: { fontSize: 20, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
+  viewAllText: { fontSize: FontSizes.sm, fontFamily: Fonts.bold, color: LoopyColors.green },
+  transactionCard: { flexDirection: 'row', alignItems: 'center', padding: 16, backgroundColor: LoopyColors.white, borderRadius: 32, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, elevation: 2, marginBottom: Spacing.md, borderWidth: 1, borderColor: '#f3f4f6' },
+  itemIcon: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
+  itemInfo: { flex: 1, marginLeft: Spacing.md },
+  itemTitle: { fontSize: 13, fontFamily: Fonts.bold, color: '#111827' },
+  itemDate: { fontSize: 10, fontFamily: Fonts.medium, color: '#6b7280', marginTop: 2 },
+  amountContainer: { alignItems: 'flex-end', minWidth: 80 },
+  itemAmount: { fontSize: 14, fontFamily: Fonts.bold },
+  statusLabel: { fontSize: 8, fontFamily: Fonts.bold, color: '#9ca3af', marginTop: 2, letterSpacing: 0.5 },
+  emptyCard: { alignItems: 'center', paddingVertical: Spacing['4xl'], borderStyle: 'dashed', borderWidth: 1.5, borderColor: '#d1d5db', borderRadius: 32 },
+  emptyText: { color: "#6b7280", marginTop: Spacing.md, fontSize: FontSizes.md, fontWeight: '500' },
 });

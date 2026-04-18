@@ -4,7 +4,7 @@ import { useRouter, Link } from 'expo-router';
 import { api } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
-import { LoopyColors } from '../constants/theme';
+import { LoopyColors, Colors } from '../constants/colors';
 
 export default function SignupScreen() {
   const [name, setName] = useState('');

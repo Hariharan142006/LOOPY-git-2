@@ -1,17 +1,21 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
+import Animated, { FadeInUp, FadeInDown, Layout } from 'react-native-reanimated';
+import { LoopyColors, Colors } from '../constants/colors';
+import { Fonts } from '../constants/typography';
 
 export default function HistoryScreen() {
   const router = useRouter();
   const { user } = useAuth();
-  const [history, setHistory] = React.useState([]);
-  const [loading, setLoading] = React.useState(true);
+  const [history, setHistory] = useState<any[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(true);
 
-  React.useEffect(() => {
+  useEffect(() => {
     fetchHistory();
   }, []);
 
@@ -26,120 +30,204 @@ export default function HistoryScreen() {
     }
   };
 
+  const filteredHistory = history.filter(item => {
+    const searchLow = searchQuery.toLowerCase();
+    return (
+      item.id.toLowerCase().includes(searchLow) ||
+      (item.address?.street || '').toLowerCase().includes(searchLow) ||
+      (item.address?.city || '').toLowerCase().includes(searchLow)
+    );
+  });
+
+  const getStatusMeta = (status: string) => {
+    const s = status?.toUpperCase();
+    switch (s) {
+      case 'COMPLETED':
+      case 'PAID':
+        return { 
+          color: '#22c55e', 
+          icon: 'leaf', 
+          bg: '#f0fdf4',
+          label: 'COMPLETED',
+          footer: 'Earned Credits'
+        };
+      case 'ARRIVED':
+        return { 
+          color: '#06b6d4', 
+          icon: 'car', 
+          bg: '#ecfeff',
+          label: 'ARRIVED',
+          footer: 'Agent is waiting at drop-off'
+        };
+      case 'SCHEDULED':
+      case 'PENDING':
+      case 'ASSIGNED':
+        return { 
+          color: '#6b7280', 
+          icon: 'calendar', 
+          bg: '#f9fafb',
+          label: s === 'PENDING' ? 'SCHEDULED' : s,
+          footer: 'Reminder set'
+        };
+      default:
+        return { 
+          color: '#9ca3af', 
+          icon: 'time', 
+          bg: '#f9fafb',
+          label: s,
+          footer: 'Status update'
+        };
+    }
+  };
+
+  const HistoryCard = ({ item, index }: { item: any; index: number }) => {
+    const meta = getStatusMeta(item.status);
+    const date = new Date(item.scheduledAt);
+    const formattedDate = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const formattedTime = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+
+    return (
+      <Animated.View 
+        entering={FadeInUp.delay(index * 100)} 
+        layout={Layout.springify()}
+        style={styles.card}
+      >
+        <TouchableOpacity activeOpacity={0.8} onPress={() => router.push(`/track/${item.id}` as any)}>
+           <View style={styles.cardHeader}>
+              <View style={[styles.iconBox, { backgroundColor: meta.bg }]}>
+                 <Ionicons name={meta.icon as any} size={22} color={meta.color} />
+              </View>
+              <View style={styles.cardHeaderContent}>
+                 <Text style={styles.locationTitle}>{item.address?.street || `Pickup #${item.id.slice(-6).toUpperCase()}`}</Text>
+                 <Text style={styles.timeMeta}>{formattedDate} • {formattedTime}</Text>
+              </View>
+              <View style={[styles.statusBadge, { backgroundColor: meta.bg }]}>
+                 <Text style={[styles.statusText, { color: meta.color }]}>{meta.label}</Text>
+              </View>
+           </View>
+
+           <View style={styles.tagsRow}>
+              {(item.items && item.items.length > 0) ? (
+                 item.items.slice(0, 2).map((subItem: any, idx: number) => (
+                    <View key={idx} style={styles.tag}>
+                       <Ionicons name={idx === 0 ? "cube-outline" : "document-text-outline"} size={12} color="#111827" />
+                       <Text style={styles.tagText}>{subItem.type || 'Material'} ({subItem.quantity || '0'}kg)</Text>
+                    </View>
+                 ))
+              ) : (
+                <View style={styles.tag}>
+                   <Ionicons name="leaf" size={12} color="#111827" />
+                   <Text style={styles.tagText}>Recyclables (est. {item.estimatedWeight || '25'}kg)</Text>
+                </View>
+              )}
+           </View>
+
+           <View style={styles.cardDivider} />
+
+           <View style={styles.cardFooter}>
+              <Text style={[styles.footerActionText, { color: meta.color === '#6b7280' ? '#6b7280' : (meta.color === '#22c55e' ? '#111827' : meta.color) }]}>
+                 {meta.footer === 'Earned Credits' ? `Earned ${Math.floor(item.totalAmount || 120)} ECO Credits` : meta.footer}
+              </Text>
+              <Ionicons name="chevron-forward" size={16} color="#d1d5db" />
+           </View>
+        </TouchableOpacity>
+      </Animated.View>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Pickup History</Text>
-        <View style={{ width: 24 }} />
+        <View style={styles.searchContainer}>
+           <Ionicons name="search" size={18} color="#9ca3af" style={styles.searchIcon} />
+           <TextInput 
+             style={styles.searchInput}
+             placeholder="Search pickups or waste types..."
+             placeholderTextColor="#9ca3af"
+             value={searchQuery}
+             onChangeText={setSearchQuery}
+           />
+        </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.scroll}>
-        {history.map((item: any) => (
-          <TouchableOpacity key={item.id} style={styles.record}>
-             <View style={styles.recordLeft}>
-                <View style={styles.iconCircle}>
-                   <Ionicons name="calendar-clear" size={20} color="#10b981" />
-                </View>
-                <View>
-                   <Text style={styles.recordTitle}>Pickup #{item.id.slice(-6).toUpperCase()}</Text>
-                   <Text style={styles.recordDate}>{new Date(item.scheduledAt).toLocaleDateString()}</Text>
-                </View>
-             </View>
-             <View style={styles.recordRight}>
-                <Text style={styles.recordAmount}>₹{item.totalAmount}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: getStatusColor(item.status) + '15' }]}>
-                   <Text style={[styles.statusText, { color: getStatusColor(item.status) }]}>{item.status}</Text>
-                </View>
-             </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        <Text style={styles.sectionHeader}>RECENT ACTIVITY</Text>
+
+        {loading ? (
+          <View style={styles.center}>
+             <ActivityIndicator size="small" color={LoopyColors.green} />
+          </View>
+        ) : filteredHistory.length === 0 ? (
+          <View style={styles.emptyContainer}>
+             <Ionicons name="receipt-outline" size={48} color="#e5e7eb" />
+             <Text style={styles.emptyText}>No matching pickups found</Text>
+          </View>
+        ) : (
+          filteredHistory.map((item, index) => (
+            <HistoryCard key={item.id} item={item} index={index} />
+          ))
+        )}
+
+        {filteredHistory.length > 0 && (
+          <TouchableOpacity style={styles.loadMoreBtn}>
+             <Text style={styles.loadMoreText}>LOAD OLDER RECORDS</Text>
           </TouchableOpacity>
-        ))}
+        )}
       </ScrollView>
     </View>
   );
 }
 
-const getStatusColor = (status: string) => {
-  switch (status?.toUpperCase()) {
-    case 'COMPLETED': return '#10b981';
-    case 'CANCELLED': return '#ef4444';
-    case 'PENDING': return '#f59e0b';
-    default: return '#6b7280';
-  }
-};
-
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#ffffff',
+  container: { flex: 1, backgroundColor: '#f9fafb' },
+  center: { padding: 40, alignItems: 'center' },
+  
+  // Header & Search
+  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 16, backgroundColor: '#f9fafb' },
+  backBtn: { marginBottom: 16 },
+  searchContainer: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#ebebeb', 
+    borderRadius: 100, 
+    paddingHorizontal: 16, 
+    height: 52,
+    borderWidth: 1,
+    borderColor: '#e5e7eb'
   },
-  header: {
-    paddingTop: 60,
-    paddingHorizontal: 24,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  scroll: {
-    padding: 20,
-  },
-  record: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: '#f3f4f6',
-  },
-  recordLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  iconCircle: {
-     width: 40,
-     height: 40,
-     borderRadius: 20,
-     backgroundColor: '#ecfdf5',
-     alignItems: 'center',
-     justifyContent: 'center',
-  },
-  recordTitle: {
-    fontSize: 15,
-    fontWeight: '600',
-    color: '#111827',
-  },
-  recordDate: {
-    fontSize: 13,
-    color: '#9ca3af',
-    marginTop: 2,
-  },
-  recordRight: {
-    alignItems: 'flex-end',
-    gap: 4,
-  },
-  recordAmount: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#111827',
-  },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 6,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: 'bold',
-  }
+  searchIcon: { marginRight: 12 },
+  searchInput: { flex: 1, fontSize: 15, fontFamily: Fonts.medium, color: '#111827' },
+
+  // List Content
+  scrollContent: { paddingHorizontal: 20, paddingBottom: 60 },
+  sectionHeader: { fontSize: 11, fontFamily: Fonts.bold, color: '#6b7280', letterSpacing: 1.5, marginBottom: 20, marginTop: 8 },
+  
+  // Card Design
+  card: { backgroundColor: '#fff', borderRadius: 28, padding: 20, marginBottom: 16, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 16 },
+  iconBox: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center', marginRight: 12 },
+  cardHeaderContent: { flex: 1 },
+  locationTitle: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827' },
+  timeMeta: { fontSize: 13, fontFamily: Fonts.medium, color: '#9ca3af', marginTop: 2 },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 100 },
+  statusText: { fontSize: 9, fontFamily: Fonts.bold },
+
+  // Tags
+  tagsRow: { flexDirection: 'row', gap: 8, marginBottom: 16 },
+  tag: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: '#f3f4f6', paddingHorizontal: 12, paddingVertical: 6, borderRadius: 12 },
+  tagText: { fontSize: 11, fontFamily: Fonts.bold, color: '#111827' },
+
+  cardDivider: { height: 1, backgroundColor: '#f3f4f6', marginHorizontal: -20, marginBottom: 16 },
+  
+  cardFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  footerActionText: { fontSize: 13, fontFamily: Fonts.bold },
+
+  // Helpers
+  loadMoreBtn: { backgroundColor: '#f3f4f6', paddingVertical: 14, borderRadius: 100, alignItems: 'center', marginTop: 12 },
+  loadMoreText: { fontSize: 12, fontFamily: Fonts.bold, color: '#166534', letterSpacing: 1 },
+  emptyContainer: { alignItems: 'center', marginTop: 60 },
+  emptyText: { fontSize: 15, fontFamily: Fonts.medium, color: '#9ca3af', marginTop: 16 },
 });

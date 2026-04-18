@@ -4,9 +4,11 @@ import { useRouter } from 'expo-router';
 import { api } from '../utils/api';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
+import { useTranslation } from '../hooks/useTranslation';
 
 export default function ManageAddressesScreen() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAdding, setIsAdding] = useState(false);
@@ -53,7 +55,7 @@ export default function ManageAddressesScreen() {
         setZip(addr.postalCode || '');
       }
     } catch (e) {
-      Alert.alert('Error', 'Could not detect location');
+      Alert.alert(t('error'), t('could_not_detect_location'));
     } finally {
       setIsLocating(false);
     }
@@ -61,7 +63,7 @@ export default function ManageAddressesScreen() {
 
   const handleSave = async () => {
     if (!street || !city || !zip) {
-      Alert.alert('Error', 'Please fill in required fields');
+      Alert.alert(t('error'), t('fill_all_fields'));
       return;
     }
 
@@ -114,7 +116,7 @@ export default function ManageAddressesScreen() {
         <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Addresses</Text>
+        <Text style={styles.headerTitle}>{t('addresses_header')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -123,7 +125,7 @@ export default function ManageAddressesScreen() {
           <>
             <TouchableOpacity style={styles.addBtn} onPress={() => setIsAdding(true)}>
               <Ionicons name="add-circle" size={24} color="#10b981" />
-              <Text style={styles.addBtnText}>Add New Address</Text>
+              <Text style={styles.addBtnText}>{t('add_new_address')}</Text>
             </TouchableOpacity>
 
             {loading ? (
@@ -148,16 +150,16 @@ export default function ManageAddressesScreen() {
             {addresses.length === 0 && !loading && (
               <View style={styles.empty}>
                  <Ionicons name="map-outline" size={48} color="#f3f4f6" />
-                 <Text style={styles.emptyText}>No saved addresses found.</Text>
+                 <Text style={styles.emptyText}>{t('no_saved_addresses')}</Text>
               </View>
             )}
           </>
         ) : (
           <View style={styles.form}>
-            <Text style={styles.formTitle}>Add New Address</Text>
+            <Text style={styles.formTitle}>{t('add_new_address')}</Text>
             
             <View style={styles.inputGroup}>
-               <Text style={styles.label}>Address Label</Text>
+               <Text style={styles.label}>{t('address_label')}</Text>
                <View style={styles.labelsRow}>
                   {['Home', 'Office', 'Other'].map(l => (
                     <TouchableOpacity 
@@ -172,31 +174,31 @@ export default function ManageAddressesScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-               <Text style={styles.label}>Street / Building</Text>
+               <Text style={styles.label}>{t('street_building')}</Text>
                <TextInput style={styles.input} value={street} onChangeText={setStreet} placeholder="123 Green St" />
             </View>
 
             <View style={styles.inputGroup}>
-               <Text style={styles.label}>City</Text>
+               <Text style={styles.label}>{t('city')}</Text>
                <TextInput style={styles.input} value={city} onChangeText={setCity} placeholder="Hyderabad" />
             </View>
 
             <View style={styles.inputGroup}>
-               <Text style={styles.label}>Zip Code</Text>
+               <Text style={styles.label}>{t('zip_code')}</Text>
                <TextInput style={styles.input} value={zip} onChangeText={setZip} placeholder="500001" keyboardType="numeric" />
             </View>
 
             <TouchableOpacity style={styles.detectBtn} onPress={handleDetect} disabled={isLocating}>
                {isLocating ? <ActivityIndicator size="small" color="#10b981" /> : <Ionicons name="navigate-outline" size={18} color="#10b981" />}
-               <Text style={styles.detectText}>Use Current Location</Text>
+               <Text style={styles.detectText}>{t('detect_location')}</Text>
             </TouchableOpacity>
 
             <View style={styles.row}>
                <TouchableOpacity style={styles.cancelLink} onPress={() => setIsAdding(false)}>
-                  <Text style={styles.cancelText}>Cancel</Text>
+                  <Text style={styles.cancelText}>{t('cancel')}</Text>
                </TouchableOpacity>
                <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
-                  <Text style={styles.saveText}>Save Address</Text>
+                  <Text style={styles.saveText}>{t('save_address')}</Text>
                </TouchableOpacity>
             </View>
           </View>
