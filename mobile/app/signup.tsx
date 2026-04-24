@@ -47,7 +47,7 @@ export default function SignupScreen() {
       <Animated.View entering={FadeInUp.delay(200)} style={styles.headerSection}>
          <View style={styles.logoContainer}>
             <Image 
-               source={require('../assets/images/icon.png')} 
+               source={require('../assets/images/finial_logo.jpg')} 
                style={styles.logo} 
                resizeMode="contain"
             />

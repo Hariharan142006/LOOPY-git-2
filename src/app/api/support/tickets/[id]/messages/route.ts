@@ -77,7 +77,7 @@ export async function POST(
                         title: 'New Support Message',
                         message: `Admin replied: "${text.substring(0, 50)}${text.length > 50 ? '...' : ''}"`,
                         type: 'INFO',
-                        relatedId: params.id
+                        relatedId: id
                     }
                 });
             } else {
