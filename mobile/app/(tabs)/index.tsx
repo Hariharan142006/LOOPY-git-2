@@ -180,57 +180,6 @@ export default function DashboardScreen() {
     );
   }
 
-  const renderAgentTask = (item: any, type: 'AVAILABLE' | 'ACCEPTED') => (
-    <Animated.View entering={FadeInUp} style={styles.agentTaskCard} key={item.id}>
-        <View style={styles.taskHeader}>
-            <View style={styles.taskTypeBadge}>
-                <Text style={styles.taskTypeText}>{item.address?.label || 'Pickup'}</Text>
-            </View>
-            <Text style={styles.taskDistance}>{item.distance ? `${item.distance.toFixed(1)} km` : 'Local'}</Text>
-        </View>
-
-        <View style={styles.taskBody}>
-            <Text style={styles.taskAddress}>{item.address?.street}, {item.address?.city}</Text>
-            <Text style={styles.taskUser}><Ionicons name="person" size={12} /> {item.user?.name}</Text>
-            <Text style={styles.taskTime}><Ionicons name="time" size={12} /> {new Date(item.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
-        </View>
-
-        <View style={styles.taskFooter}>
-            {type === 'AVAILABLE' ? (
-                <TouchableOpacity style={styles.acceptBtn} onPress={() => handleTaskAction(item.id, 'ACCEPT')}>
-                    <Text style={styles.acceptBtnText}>Accept Pickup</Text>
-                </TouchableOpacity>
-            ) : (
-                <View style={styles.actionRow}>
-                    {item.status === 'ASSIGNED' && (
-                        <TouchableOpacity style={styles.statusBtnPrimary} onPress={() => {
-                            handleTaskAction(item.id, 'STATUS', 'ONEWAY');
-                            router.push(`/track-route/${item.id}` as any);
-                        }}>
-                            <Ionicons name="navigate" size={18} color="#fff" />
-                            <Text style={styles.statusBtnText}>On the Way</Text>
-                        </TouchableOpacity>
-                    )}
-                    {item.status === 'ONEWAY' && (
-                        <TouchableOpacity style={[styles.statusBtnPrimary, { backgroundColor: '#8b5cf6' }]} onPress={() => handleTaskAction(item.id, 'STATUS', 'ARRIVED')}>
-                            <Ionicons name="pin" size={18} color="#fff" />
-                            <Text style={styles.statusBtnText}>Arrived</Text>
-                        </TouchableOpacity>
-                    )}
-                    {item.status === 'ARRIVED' && (
-                         <TouchableOpacity style={[styles.statusBtnPrimary, { backgroundColor: '#10b981' }]} onPress={() => router.push(`/weigh/${item.id}` as any)}>
-                            <Ionicons name="scale" size={18} color="#fff" />
-                            <Text style={styles.statusBtnText}>Start Weighing</Text>
-                        </TouchableOpacity>
-                    )}
-                    <TouchableOpacity style={styles.callBtn} onPress={() => Alert.alert('Calling', `Dialing ${item.user?.phone}`)}>
-                        <Ionicons name="call" size={20} color={LoopyColors.charcoal} />
-                    </TouchableOpacity>
-                </View>
-            )}
-        </View>
-    </Animated.View>
-  );
 
   return isAgent ? (
     <SafeAreaView style={styles.agentContainer} edges={['top']}>
@@ -548,6 +497,7 @@ const styles = StyleSheet.create({
   customerHeader: { paddingHorizontal: 32, paddingTop: 20, marginBottom: 32 },
   customerHeaderTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   avatarHolder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarMini: { width: '100%', height: '100%' },
   welcomeBackText: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, textTransform: 'uppercase', letterSpacing: 0.5 },
   greetingHeader: { fontSize: 24, fontFamily: Fonts.bold, color: LoopyColors.charcoal, letterSpacing: -0.8 },
   nameHeaderGreen: { color: LoopyColors.success },
@@ -581,6 +531,7 @@ const styles = StyleSheet.create({
 
   // Activity
   activitySectionCustomer: { paddingHorizontal: 32, marginBottom: 40 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 16 },
   sectionHeader: { fontSize: 18, fontFamily: Fonts.bold, color: LoopyColors.charcoal, letterSpacing: -0.5 },
   sectionHeaderSmall: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, letterSpacing: 0.5 },
   activitySubtitle: { fontSize: 14, fontFamily: Fonts.regular, color: '#6b7280', marginTop: 2 },

@@ -240,7 +240,7 @@ export default function AccountSettingsScreen() {
               onPress={handleChangePassword}
               disabled={passLoading}
             >
-              <Text style={styles.saveBtnText}>{passLoading ? t('updating') : t('update_password')}</Text>
+              <Text style={styles.saveBtnText}>{passLoading ? t('updating' as any) : t('update_password' as any)}</Text>
             </TouchableOpacity>
           </View>
         </View>

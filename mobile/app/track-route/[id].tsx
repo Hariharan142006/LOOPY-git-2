@@ -199,7 +199,8 @@ export default function AgentRouteScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#fff' },
     center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    header: { position: 'absolute', top: 60, left: 20, zIndex: 10 },
+    header: { position: 'absolute', top: 60, left: 20, zIndex: 10, flexDirection: 'row', alignItems: 'center' },
+    headerTitle: { fontSize: 16, fontWeight: '800', color: '#111827', marginLeft: 12, backgroundColor: 'rgba(255,255,255,0.9)', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 20, overflow: 'hidden' },
     backBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#fff', alignItems: 'center', justifyContent: 'center', elevation: 8, shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 5 },
     map: { flex: 1 },
     

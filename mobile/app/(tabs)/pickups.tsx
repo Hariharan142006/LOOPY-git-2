@@ -119,7 +119,7 @@ export default function AgentPickupsTimeline() {
                     <View style={[styles.bookingCard, isNextTask && styles.nextTaskCard]}>
                         <View style={styles.cardHeaderSmall}>
                             <Text style={[styles.statusLabel, { color: isNextTask ? statusColor : '#6b7280' }]}>
-                                {index + 1}. {item.status.replace('_', ' ')} • Payout: ₹{item.totalAmount.toFixed(0)}
+                                {index + 1}. {item.status.replace('_', ' ')} • Payout: ₹{(item.totalAmount || 0).toFixed(0)}
                             </Text>
                             <View style={styles.distanceBadge}>
                                 <Ionicons name="location" size={12} color={isNextTask ? statusColor : '#6b7280'} />

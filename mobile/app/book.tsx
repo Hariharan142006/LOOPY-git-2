@@ -12,6 +12,18 @@ import { useTranslation } from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
 
+const CAT_ICONS: Record<string, any> = {
+  'Paper': 'document-text-outline',
+  'Plastic': 'layers-outline',
+  'Metal': 'construct-outline',
+  'E-Waste': 'hardware-chip-outline',
+  'Appliances': 'tv-outline',
+  'Glass': 'wine-outline',
+  'Automotive': 'car-outline',
+  'Textiles': 'shirt-outline',
+  'Batteries': 'battery-charging-outline',
+};
+
 export default function BookPickupScreen() {
   const router = useRouter();
   const { user } = useAuth();
@@ -62,6 +74,7 @@ export default function BookPickupScreen() {
       setAddresses(addrRes.data.addresses || []);
     } catch (error) {
       console.error("Fetch Error:", error);
+      setCategories([]); // Ensure it's at least an empty array on error
     }
   };
 

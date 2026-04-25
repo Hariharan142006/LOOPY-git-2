@@ -159,7 +159,7 @@ export default function ManageAddressesScreen() {
             <Text style={styles.formTitle}>{t('add_new_address')}</Text>
             
             <View style={styles.inputGroup}>
-               <Text style={styles.label}>{t('address_label')}</Text>
+               <Text style={styles.label}>{t('address_label' as any)}</Text>
                <View style={styles.labelsRow}>
                   {['Home', 'Office', 'Other'].map(l => (
                     <TouchableOpacity 

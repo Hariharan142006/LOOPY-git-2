@@ -91,7 +91,7 @@ export default function BookingsScreen() {
           >
             <View style={styles.cardHeaderSmall}>
                <Text style={[styles.statusLabel, { color: statusColor }]}>
-                 {t(`status.${status.toLowerCase()}`)} • {new Date(item.scheduledAt).toLocaleDateString()}
+                 {t(`status.${status.toLowerCase()}` as any)} • {new Date(item.scheduledAt).toLocaleDateString()}
                </Text>
                <Ionicons 
                  name={isCompleted ? "checkmark-circle" : (status === 'PENDING' ? "time" : "navigate")} 

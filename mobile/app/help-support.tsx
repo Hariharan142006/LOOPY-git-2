@@ -182,7 +182,7 @@ export default function HelpSupportScreen() {
           style={[styles.tab, activeTab === 'options' && styles.activeTab]} 
           onPress={() => setActiveTab('options')}
         >
-          <Text style={[styles.tabText, activeTab === 'options' && styles.activeTabText]}>{t('options')}</Text>
+          <Text style={[styles.tabText, activeTab === 'options' && styles.activeTabText]}>{t('options' as any)}</Text>
         </TouchableOpacity>
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'tickets' && styles.activeTab]} 
@@ -206,7 +206,7 @@ export default function HelpSupportScreen() {
             <SupportOption 
               icon="chatbubble-ellipses-outline" 
               label={t('message_support')} 
-              sub={t('chat_sub')} 
+              sub={t('chat_sub' as any)} 
               color={LoopyColors.green}
               onPress={() => setIsCreatingTicket(true)}
             />

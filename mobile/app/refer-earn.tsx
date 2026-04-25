@@ -32,7 +32,7 @@ export default function ReferEarnScreen() {
   const onShare = async (code: string, reward: number) => {
     try {
       await Share.share({
-        message: t('invite_message', { code, reward }),
+        message: t('invite_message' as any, { code, reward }),
       });
     } catch (error) {
       console.error(error);

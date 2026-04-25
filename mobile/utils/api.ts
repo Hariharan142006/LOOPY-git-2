@@ -3,7 +3,6 @@ import * as SecureStore from 'expo-secure-store';
 import { Platform } from 'react-native';
 
 const PROD_URL = 'https://loopy-backend-murex.vercel.app';
-const DEV_URL = 'http://10.43.119.120:3000';
 export const API_URL = PROD_URL; // Pointing to Vercel production backend
 
 export const api = axios.create({
