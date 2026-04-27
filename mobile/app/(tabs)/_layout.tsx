@@ -1,57 +1,62 @@
-import { Tabs } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform } from 'react-native';
-import { useAuth } from '../../context/AuthContext';
+import React from 'react';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { CustomTabBar } from '../../components/CustomTabBar';
 import { useTranslation } from '../../hooks/useTranslation';
 
+// Import Screen Components
+import HomeScreen from './index';
+import PickupsScreen from './pickups';
+import BookingsScreen from './bookings';
+import WalletScreen from './wallet';
+import ProfileScreen from './profile';
+
+const Tab = createBottomTabNavigator();
+
 export default function TabLayout() {
-  const { user } = useAuth();
   const { t } = useTranslation();
-  
-  const isAgent = user?.role === 'AGENT';
 
   return (
-    <Tabs
+    <Tab.Navigator
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: '#10b981',
       }}>
-      <Tabs.Screen
+      <Tab.Screen
         name="index"
+        component={HomeScreen}
         options={{
-          headerShown: false,
           title: t('home'),
         }}
       />
-      <Tabs.Screen
+      <Tab.Screen
         name="pickups"
+        component={PickupsScreen}
         options={{
           title: t('pickups'),
-          href: isAgent ? '/pickups' : null,
         }}
       />
-      <Tabs.Screen
+      <Tab.Screen
         name="bookings"
+        component={BookingsScreen}
         options={{
           title: t('bookings'),
-          href: isAgent ? null : '/bookings',
         }}
       />
-      <Tabs.Screen
+      <Tab.Screen
         name="wallet"
+        component={WalletScreen}
         options={{
           title: t('wallet'),
         }}
       />
-      <Tabs.Screen
+      <Tab.Screen
         name="profile"
+        component={ProfileScreen}
         options={{
           title: t('profile'),
         }}
       />
-    </Tabs>
+    </Tab.Navigator>
   );
 }
-

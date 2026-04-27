@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, FlatList, RefreshControl, StatusBar, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInUp, FadeInLeft, FadeInDown, Layout } from 'react-native-reanimated';
 import { LoopyColors, Colors } from '../constants/colors';
 import { Fonts } from '../constants/typography';
@@ -16,7 +16,7 @@ const FILTER_TYPES = [
 ];
 
 export default function NotificationsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [activeFilter, setActiveFilter] = useState('all');
   const [notifications, setNotifications] = useState<any[]>([]);
@@ -147,7 +147,7 @@ export default function NotificationsScreen() {
       
       {/* Premium Custom Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.green} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Notifications</Text>

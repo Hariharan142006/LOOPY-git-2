@@ -1,13 +1,13 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Image, Linking, Platform, ScrollView } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../../utils/api';
 
 export default function TrackingScreen() {
-    const { id } = useLocalSearchParams();
-    const router = useRouter();
+    const route = useRoute<any>(); const id = route.params?.id;
+    const navigation = useNavigation<any>();
     const mapRef = useRef<MapView>(null);
 
     const [booking, setBooking] = useState<any>(null);
@@ -93,7 +93,7 @@ export default function TrackingScreen() {
         <View style={styles.center}>
             <Ionicons name="alert-circle-outline" size={48} color="#ef4444" />
             <Text style={{ fontSize: 16, color: '#6b7280', marginTop: 12, textAlign: 'center', paddingHorizontal: 40 }}>{error || 'Booking not found.'}</Text>
-            <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 20, padding: 14, backgroundColor: '#10b981', borderRadius: 16 }}>
+            <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginTop: 20, padding: 14, backgroundColor: '#10b981', borderRadius: 16 }}>
                 <Text style={{ color: '#fff', fontWeight: 'bold' }}>Go Back</Text>
             </TouchableOpacity>
         </View>
@@ -106,7 +106,7 @@ export default function TrackingScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Tracking Details</Text>
@@ -194,7 +194,7 @@ export default function TrackingScreen() {
                     {(booking.status === 'COMPLETED' || booking.status === 'PAID' || booking.status === 'WEIGHED') && (
                         <TouchableOpacity 
                             style={styles.invoiceBtn} 
-                            onPress={() => router.push(`/invoice/${booking.id}` as any)}
+                            onPress={() => navigation.navigate('Invoice', { id: booking.id } as any)}
                         >
                             <Ionicons name="receipt-outline" size={20} color="#fff" />
                             <Text style={styles.invoiceBtnText}>View Digital Invoice</Text>

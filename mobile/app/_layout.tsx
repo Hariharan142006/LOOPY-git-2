@@ -1,78 +1,101 @@
-import { useEffect } from 'react';
+import React from 'react';
 import { DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Stack, useRouter, useSegments } from 'expo-router';
-import { StatusBar } from 'expo-status-bar';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { NavigationContainer } from '@react-navigation/native';
+import { StatusBar } from 'react-native';
 import { AuthProvider, useAuth } from '../context/AuthContext';
-import 'react-native-reanimated';
-import * as SplashScreen from 'expo-splash-screen';
-import { useFonts, Poppins_400Regular, Poppins_500Medium, Poppins_600SemiBold, Poppins_700Bold } from '@expo-google-fonts/poppins';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
-// Keep the splash screen visible while we fetch resources
-SplashScreen.preventAutoHideAsync();
+// Import Screens
+import LoginScreen from './login';
+import SignupScreen from './signup';
+import TabLayout from './(tabs)/_layout';
+import BookScreen from './book';
+import HistoryScreen from './history';
+import NotificationsScreen from './notifications';
+import RatesScreen from './rates';
+import HelpSupportScreen from './help-support';
+import LegalScreen from './legal';
+import AccountSettingsScreen from './account-settings';
+import EditProfileScreen from './edit-profile';
+import ManageAddressesScreen from './manage-addresses';
+import FeedbackScreen from './feedback';
+import ReferEarnScreen from './refer-earn';
+import LanguageNotificationsScreen from './language-notifications';
+
+// Dynamic Screens
+import InvoiceScreen from './invoice/[id]';
+import TrackScreen from './track/[id]';
+import TrackRouteScreen from './track-route/[id]';
+import WeighScreen from './weigh/[id]';
+
+// Onboarding Screens
+import OnboardingLanguageScreen from './onboarding/language';
+import OnboardingDetailsScreen from './onboarding/details';
+import OnboardingTutorialScreen from './onboarding/tutorial';
+import OnboardingFleetScreen from './onboarding/fleet';
+
+const Stack = createNativeStackNavigator();
 
 function RootLayoutNav() {
   const { user, isAuthenticated, isLoading: isAuthLoading } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
 
-  const [fontsLoaded, fontError] = useFonts({
-    Poppins_400Regular,
-    Poppins_500Medium,
-    Poppins_600SemiBold,
-    Poppins_700Bold,
-  });
-
-  useEffect(() => {
-    if (fontError) throw fontError;
-  }, [fontError]);
-
-  useEffect(() => {
-    if (fontsLoaded && !isAuthLoading) {
-      SplashScreen.hideAsync();
-    }
-  }, [fontsLoaded, isAuthLoading]);
-
-  useEffect(() => {
-    if (isAuthLoading || !fontsLoaded) return;
-
-    const inAuthGroup = segments[0] === 'login' || segments[0] === 'signup';
-    const inOnboardingGroup = segments[0] === 'onboarding';
-
-    if (!isAuthenticated && !inAuthGroup) {
-      router.replace('/login');
-    } else if (isAuthenticated) {
-      if (!user?.onboarded && !inOnboardingGroup) {
-        router.replace('/onboarding/details');
-      } else if (user?.onboarded && (inAuthGroup || inOnboardingGroup)) {
-        router.replace('/(tabs)');
-      }
-    }
-  }, [isAuthenticated, segments, router, isAuthLoading, fontsLoaded]);
-
-  if (isAuthLoading || !fontsLoaded) {
+  if (isAuthLoading) {
     return null;
   }
 
   return (
-    <Stack screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="login" />
-      <Stack.Screen name="signup" />
-      <Stack.Screen name="onboarding" />
-      <Stack.Screen name="(tabs)" />
-    </Stack>
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      {!isAuthenticated ? (
+        <>
+          <Stack.Screen name="Login" component={LoginScreen} />
+          <Stack.Screen name="Signup" component={SignupScreen} />
+        </>
+      ) : (
+        <>
+          {!user?.onboarded ? (
+            <>
+              <Stack.Screen name="OnboardingLanguage" component={OnboardingLanguageScreen} />
+              <Stack.Screen name="OnboardingDetails" component={OnboardingDetailsScreen} />
+              {user?.role === 'AGENT' && (
+                <Stack.Screen name="OnboardingFleet" component={OnboardingFleetScreen} />
+              )}
+              <Stack.Screen name="OnboardingTutorial" component={OnboardingTutorialScreen} />
+            </>
+          ) : null}
+          <Stack.Screen name="Main" component={TabLayout} />
+          <Stack.Screen name="Book" component={BookScreen} />
+          <Stack.Screen name="History" component={HistoryScreen} />
+          <Stack.Screen name="Notifications" component={NotificationsScreen} />
+          <Stack.Screen name="Rates" component={RatesScreen} />
+          <Stack.Screen name="HelpSupport" component={HelpSupportScreen} />
+          <Stack.Screen name="Legal" component={LegalScreen} />
+          <Stack.Screen name="AccountSettings" component={AccountSettingsScreen} />
+          <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+          <Stack.Screen name="ManageAddresses" component={ManageAddressesScreen} />
+          <Stack.Screen name="Feedback" component={FeedbackScreen} />
+          <Stack.Screen name="ReferEarn" component={ReferEarnScreen} />
+          <Stack.Screen name="LanguageNotifications" component={LanguageNotificationsScreen} />
+          <Stack.Screen name="Invoice" component={InvoiceScreen} />
+          <Stack.Screen name="Track" component={TrackScreen} />
+          <Stack.Screen name="TrackRoute" component={TrackRouteScreen} />
+          <Stack.Screen name="Weigh" component={WeighScreen} />
+        </>
+      )}
+    </Stack.Navigator>
   );
 }
-
-import { GestureHandlerRootView } from 'react-native-gesture-handler';
 
 export default function RootLayout() {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <AuthProvider>
-        <ThemeProvider value={DefaultTheme}>
-          <RootLayoutNav />
-          <StatusBar style="dark" />
-        </ThemeProvider>
+        <NavigationContainer>
+          <ThemeProvider value={DefaultTheme}>
+            <RootLayoutNav />
+            <StatusBar barStyle="dark-content" />
+          </ThemeProvider>
+        </NavigationContainer>
       </AuthProvider>
     </GestureHandlerRootView>
   );

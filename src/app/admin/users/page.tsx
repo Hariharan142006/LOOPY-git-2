@@ -16,9 +16,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Trash2, Shield, Ban, CheckCircle, UserCog, Wallet, Plus, Mail, Phone, User, Search, Loader2 } from 'lucide-react';
+import { Trash2, Shield, Ban, CheckCircle, UserCog, Wallet, Plus, Mail, Phone, User, Search, Loader2, Eraser, Edit } from 'lucide-react';
 import { toast } from 'sonner';
-import { getUsersAction, toggleUserStatusAction, deleteUserAction, changeUserRoleAction, createCustomerAction } from '@/app/actions';
+import { getUsersAction, toggleUserStatusAction, deleteUserAction, changeUserRoleAction, createCustomerAction, clearUserDataAction, updateUserAction } from '@/app/actions';
 import { useAuthStore } from '@/lib/store';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -33,6 +33,11 @@ export default function AdminUsersPage() {
     const [isDialogOpen, setIsDialogOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [formData, setFormData] = useState({ name: '', email: '', phone: '', password: '' });
+    
+    // Edit User State
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+    const [editingUser, setEditingUser] = useState<any>(null);
+    const [editFormData, setEditFormData] = useState({ name: '', email: '', phone: '', password: '' });
 
 
     useEffect(() => {
@@ -107,6 +112,52 @@ export default function AdminUsersPage() {
             }
         } catch (error) {
             toast.error('An error occurred');
+        }
+    };
+
+    const handleClearData = async (userId: string) => {
+        if (!confirm('Are you sure you want to CLEAR ALL DATA for this user? This will delete all their bookings, wallet history, and addresses. This cannot be undone.')) return;
+        try {
+            const result = await clearUserDataAction(userId);
+            if (result.success) {
+                toast.success('User data cleared successfully');
+                loadUsers();
+            } else {
+                toast.error('Failed to clear data');
+            }
+        } catch (error) {
+            toast.error('An error occurred');
+        }
+    };
+
+    const handleEditClick = (user: any) => {
+        setEditingUser(user);
+        setEditFormData({
+            name: user.name || '',
+            email: user.email || '',
+            phone: user.phone || '',
+            password: '' // Keep password empty by default
+        });
+        setIsEditDialogOpen(true);
+    };
+
+    const handleUpdateUser = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        setIsSubmitting(true);
+        try {
+            const result = await updateUserAction(editingUser.id, editFormData);
+            if (result.success) {
+                toast.success('User updated successfully');
+                setIsEditDialogOpen(false);
+                loadUsers();
+            } else {
+                toast.error(result.error || 'Failed to update user');
+            }
+        } catch (error) {
+            toast.error('An error occurred');
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
@@ -309,6 +360,26 @@ export default function AdminUsersPage() {
                                                         <Button
                                                             variant="ghost"
                                                             size="sm"
+                                                            onClick={() => handleEditClick(user)}
+                                                            className="text-blue-400 hover:text-blue-300 hover:bg-blue-500/10"
+                                                            title="Edit User"
+                                                        >
+                                                            <Edit className="h-4 w-4" />
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => handleClearData(user.id)}
+                                                            className="text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                                                            title="Clear User Data"
+                                                        >
+                                                            <Eraser className="h-4 w-4" />
+                                                        </Button>
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="sm"
                                                             onClick={() => handleDeleteUser(user.id)}
                                                             className="text-red-400 hover:text-red-300 hover:bg-red-500/10"
                                                             title="Delete User"
@@ -326,6 +397,40 @@ export default function AdminUsersPage() {
                     )}
                 </CardContent>
             </Card>
+
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="bg-white text-black">
+                    <DialogHeader>
+                        <DialogTitle>Edit User Details</DialogTitle>
+                        <DialogDescription>
+                            Update profile information for {editingUser?.name}.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <form onSubmit={handleUpdateUser} className="space-y-4 py-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="e-name">Full Name</Label>
+                            <Input id="e-name" value={editFormData.name} onChange={e => setEditFormData({ ...editFormData, name: e.target.value })} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="e-email">Email</Label>
+                            <Input id="e-email" type="email" value={editFormData.email} onChange={e => setEditFormData({ ...editFormData, email: e.target.value })} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="e-phone">Phone</Label>
+                            <Input id="e-phone" type="tel" value={editFormData.phone} onChange={e => setEditFormData({ ...editFormData, phone: e.target.value })} required />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="e-password">New Password (Leave blank to keep current)</Label>
+                            <Input id="e-password" type="text" placeholder="••••••••" value={editFormData.password} onChange={e => setEditFormData({ ...editFormData, password: e.target.value })} />
+                        </div>
+                        <DialogFooter>
+                            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white" disabled={isSubmitting}>
+                                {isSubmitting ? <Loader2 className="animate-spin h-4 w-4" /> : 'Update User'}
+                            </Button>
+                        </DialogFooter>
+                    </form>
+                </DialogContent>
+            </Dialog>
         </div >
     );
 }

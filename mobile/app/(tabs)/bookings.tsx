@@ -4,8 +4,8 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInDown, FadeInUp, FadeInRight } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { LoopyColors } from '../../constants/colors';
 import { Fonts } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/layout';
@@ -17,7 +17,7 @@ const { width } = Dimensions.get('window');
 export default function BookingsScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   
   const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -83,7 +83,7 @@ export default function BookingsScreen() {
         >
           <TouchableOpacity 
             activeOpacity={0.7}
-            onPress={() => router.push(`/track/${item.id}` as any)}
+            onPress={() => navigation.navigate('Track', { id: item.id } as any)}
             style={[
               styles.bookingCard, 
               isActive && { backgroundColor: statusColor + '08', borderColor: statusColor + '40' }
@@ -91,7 +91,7 @@ export default function BookingsScreen() {
           >
             <View style={styles.cardHeaderSmall}>
                <Text style={[styles.statusLabel, { color: statusColor }]}>
-                 {t(`status.${status.toLowerCase()}` as any)} • {new Date(item.scheduledAt).toLocaleDateString()}
+                 {t(`status.${status.toLowerCase()}`)} • {new Date(item.scheduledAt).toLocaleDateString()}
                </Text>
                <Ionicons 
                  name={isCompleted ? "checkmark-circle" : (status === 'PENDING' ? "time" : "navigate")} 
@@ -164,7 +164,7 @@ export default function BookingsScreen() {
       <View style={styles.header}>
         <View style={{ width: 40 }} />
         <Text style={styles.headerTitle}>{t('bookings')}</Text>
-        <TouchableOpacity style={styles.profileBtn} onPress={() => router.push('/profile' as any)}>
+        <TouchableOpacity style={styles.profileBtn} onPress={() => navigation.navigate('Main', { screen: 'profile' })}>
            <Image 
               source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
               style={styles.avatarMini} 
@@ -189,7 +189,7 @@ export default function BookingsScreen() {
 
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => router.push('/book' as any)}
+        onPress={() => navigation.navigate('Book')}
       >
         <Ionicons name="add" size={32} color="#fff" />
       </TouchableOpacity>

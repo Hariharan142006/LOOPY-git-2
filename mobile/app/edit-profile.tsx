@@ -1,16 +1,16 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, ActivityIndicator, Alert, KeyboardAvoidingView, Platform, Image } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { LoopyColors } from '../constants/colors';
 import { Fonts } from '../constants/typography';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function EditProfileScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user, login, updateUser } = useAuth();
   const { t } = useTranslation();
   
@@ -22,21 +22,13 @@ export default function EditProfileScreen() {
 
   const handlePickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert(t('error'), 'Gallery access is required to change profile picture');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
+      const result: any = await launchImageLibrary({
+        mediaType: 'photo',
         quality: 0.5,
-        base64: true,
+        includeBase64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
+      if (result.assets && result.assets.length > 0 && result.assets[0].base64) {
         setUploading(true);
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         
@@ -81,7 +73,7 @@ export default function EditProfileScreen() {
       if (response.data.success) {
         await updateUser({ name, phone });
         Alert.alert(t('success'), 'Profile updated successfully!');
-        router.back();
+        navigation.goBack();
       }
     } catch (error: any) {
       Alert.alert(t('error'), 'Failed to update profile.');
@@ -96,7 +88,7 @@ export default function EditProfileScreen() {
       style={styles.container}
     >
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('edit_profile')}</Text>

@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Image, Share, Alert, ActivityIndicator, Clipboard } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors, Colors } from '../constants/colors';
 import Animated, { FadeInUp, FadeInDown } from 'react-native-reanimated';
 import { api } from '../utils/api';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function ReferEarnScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [referrals, setReferrals] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -47,7 +47,7 @@ export default function ReferEarnScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('refer_earn_header')}</Text>

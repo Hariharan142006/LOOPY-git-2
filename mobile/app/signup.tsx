@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ScrollView, ActivityIndicator, Image } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LoopyColors, Colors } from '../constants/colors';
 
@@ -10,9 +10,9 @@ export default function SignupScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [role] = useState('USER'); // Always USER — agents are created only by admin
+  const [role] = useState('CUSTOMER'); // Always CUSTOMER — agents are created only by admin
   const [loading, setLoading] = useState(false);
-  const router = useRouter();
+  const navigation = useNavigation<any>();
 
   const handleSignup = async () => {
     if (!name || !email || !password) {
@@ -22,7 +22,7 @@ export default function SignupScreen() {
 
     setLoading(true);
     try {
-      const response = await api.post('/api/auth/register', {
+      const response = await api.post('/api/auth/signup', {
         name,
         email,
         password,
@@ -31,7 +31,7 @@ export default function SignupScreen() {
 
       if (response.data.success) {
         Alert.alert('Success', 'Account created! Please log in.', [
-          { text: 'OK', onPress: () => router.push('/login') }
+          { text: 'OK', onPress: () => navigation.navigate('Login') }
         ]);
       }
     } catch (error: any) {
@@ -118,11 +118,9 @@ export default function SignupScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>Already have an account? </Text>
-          <Link href="/login" asChild>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Sign In</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity onPress={() => navigation.navigate('Login')}>
+            <Text style={styles.footerLink}>Sign In</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </ScrollView>

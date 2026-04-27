@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform, Dimensions } from 'react-native';
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors } from '../constants/colors';
 import { Fonts } from '../constants/typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -100,17 +100,17 @@ export const CustomTabBar = ({ state, descriptors, navigation }: BottomTabBarPro
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    left: 20,
-    right: 20,
+    left: 16,
+    right: 16,
     alignItems: 'center',
     justifyContent: 'center',
   },
   content: {
     flexDirection: 'row',
     backgroundColor: '#ffffff',
-    borderRadius: 35,
+    borderRadius: 40,
     paddingVertical: 10,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     width: '100%',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -130,9 +130,9 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 25,
-    marginHorizontal: 2,
+    paddingVertical: 10,
+    borderRadius: 30,
+    marginHorizontal: 4,
   },
   activeTabItem: {
     backgroundColor: '#dcfce7', // Light green background for active tab
@@ -142,5 +142,6 @@ const styles = StyleSheet.create({
     fontFamily: Fonts.bold,
     marginTop: 4,
     letterSpacing: 0.5,
+    textTransform: 'capitalize',
   },
 });

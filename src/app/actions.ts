@@ -478,9 +478,48 @@ export async function changeUserRoleAction(userId: string, newRole: string): Pro
     }
 }
 
+export async function updateUserAction(userId: string, data: { name?: string; email?: string; phone?: string; password?: string }): Promise<{ success: boolean; error?: string }> {
+    if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+    try {
+        const updateData: any = {};
+        if (data.name) updateData.name = data.name;
+        if (data.email) updateData.email = data.email;
+        if (data.phone) updateData.phone = data.phone;
+        if (data.password) {
+            updateData.password = await bcrypt.hash(data.password, 10);
+        }
+
+        await db.user.update({
+            where: { id: userId },
+            data: updateData
+        });
+        return { success: true };
+    } catch (error) {
+        console.error("Update User Error:", error);
+        return { success: false, error: "Failed to update user" };
+    }
+}
+
 export async function deleteUserAction(userId: string): Promise<{ success: boolean; error?: string }> {
     if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
     try {
+        // Cascade delete related records
+        await db.bookingItem.deleteMany({ where: { booking: { userId } } });
+        await db.booking.deleteMany({ where: { userId } });
+        await db.booking.deleteMany({ where: { agentId: userId } }); // If agent
+        await db.walletTransaction.deleteMany({ where: { userId } });
+        await db.address.deleteMany({ where: { userId } });
+        await db.notification.deleteMany({ where: { userId } });
+        await db.supportMessage.deleteMany({ where: { senderId: userId } });
+        await db.supportTicket.deleteMany({ where: { userId } });
+        await db.review.deleteMany({ where: { OR: [{ customerId: userId }, { agentId: userId }] } });
+        
+        // Nullify or delete fleet vehicles
+        await db.fleetVehicle.updateMany({
+            where: { agentId: userId },
+            data: { agentId: null }
+        });
+
         await db.user.delete({
             where: { id: userId }
         });
@@ -488,6 +527,36 @@ export async function deleteUserAction(userId: string): Promise<{ success: boole
     } catch (error) {
         console.error("Delete User Error:", error);
         return { success: false, error: "Failed to delete user" };
+    }
+}
+
+export async function clearUserDataAction(userId: string): Promise<{ success: boolean; error?: string }> {
+    if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+    try {
+        // Delete all related data
+        await db.bookingItem.deleteMany({ where: { booking: { userId } } });
+        await db.booking.deleteMany({ where: { userId } });
+        await db.walletTransaction.deleteMany({ where: { userId } });
+        await db.address.deleteMany({ where: { userId } });
+        await db.notification.deleteMany({ where: { userId } });
+        await db.supportMessage.deleteMany({ where: { senderId: userId } });
+        await db.supportTicket.deleteMany({ where: { userId } });
+        
+        // Reset user stats
+        await db.user.update({
+            where: { id: userId },
+            data: {
+                walletBalance: 0,
+                onboarded: false,
+                currentLat: null,
+                currentLng: null
+            }
+        });
+
+        return { success: true };
+    } catch (error) {
+        console.error("Clear User Data Error:", error);
+        return { success: false, error: "Failed to clear user data" };
     }
 }
 
@@ -625,7 +694,7 @@ export async function getUserActiveBookingAction(userId: string) {
 // --- Admin Booking Actions ---
 
 export async function assignAgentToBookingAction(bookingId: string, agentId: string): Promise<{ success: boolean; error?: string }> {
-    if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+    if (!(await isAgent())) return { success: false, error: "Unauthorized" };
     try {
         // Concurrency Check: Ensure booking isn't already taken
         const booking = await db.booking.findUnique({
@@ -703,14 +772,13 @@ function calculateDistance(lat1: number, lon1: number, lat2: number, lon2: numbe
     return R * c;
 }
 
-async function findNearestAgent(lat: number, lng: number, maxDistanceKm: number = 100): Promise<string | null> {
+export async function findNearestAgent(lat: number, lng: number, maxDistanceKm: number = 100): Promise<string | null> {
     try {
         console.log(`[AutoAssign] Searching for agent near ${lat}, ${lng} (Radius: ${maxDistanceKm}km)`);
         const agents = await db.user.findMany({
             where: {
                 role: 'AGENT',
                 status: 'ACTIVE',
-                isOnline: true,
                 currentLat: { not: null },
                 currentLng: { not: null }
             }
@@ -732,8 +800,23 @@ async function findNearestAgent(lat: number, lng: number, maxDistanceKm: number 
 
         if (nearestAgentId) {
             console.log(`[AutoAssign] Winner: Agent ID ${nearestAgentId} at ${minDistance.toFixed(2)}km`);
+        } else if (agents.length > 0) {
+            // FALLBACK: If no one is within 50km, just pick the absolute nearest online agent
+            // This handles cases where coordinates might be slightly off or for testing
+            let absoluteNearestId = agents[0].id;
+            let absoluteMinDist = calculateDistance(lat, lng, agents[0].currentLat!, agents[0].currentLng!);
+            
+            for (let i = 1; i < agents.length; i++) {
+                const d = calculateDistance(lat, lng, agents[i].currentLat!, agents[i].currentLng!);
+                if (d < absoluteMinDist) {
+                    absoluteMinDist = d;
+                    absoluteNearestId = agents[i].id;
+                }
+            }
+            nearestAgentId = absoluteNearestId;
+            console.log(`[AutoAssign] Fallback Winner: Agent ID ${nearestAgentId} at ${absoluteMinDist.toFixed(2)}km`);
         } else {
-            console.log(`[AutoAssign] No agent found within ${maxDistanceKm}km`);
+            console.log(`[AutoAssign] No online agents found anywhere.`);
         }
 
         return nearestAgentId;
@@ -749,10 +832,13 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
         return { available: [], accepted: [], completed: [] };
     }
     try {
-        console.log(`[FORENSIC] getAgentTasksAction called for ID: "${agentId}"`);
+        const fs = require('fs');
+        const path = require('path');
+        const logFile = path.join(process.cwd(), 'agent_tasks_debug.log');
+        const auditLog = (msg: string) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+
+        auditLog(`Call: agentId="${agentId}" lat=${agentLat} lng=${agentLng}`);
         
-        // Fetch bookings that are either assigned to this agent OR are PENDING (potential pool)
-        // We fetch ALL pending to avoid missing those with empty strings or missing fields in Mongo
         const bookings = await db.booking.findMany({
             where: {
                 OR: [
@@ -789,8 +875,7 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
             return { ...b, distance };
         });
 
-        console.log(`[AgentTasks] Total bookings fetched: ${bookings.length}`);
-        console.log(`[AgentTasks] Filtering for agentId: ${agentId}`);
+        auditLog(`Total bookings fetched: ${bookings.length}`);
 
         // 1. Available: PENDING status AND no agent assigned
         const available = bookingsWithDistance.filter(b =>
@@ -799,12 +884,13 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
         );
 
         // 2. Accepted: Assigned to THIS agent AND status is NOT COMPLETED or CANCELLED
-        const acceptedRaw = bookingsWithDistance.filter(b =>
-            b.agentId && String(b.agentId) === String(agentId) &&
-            !['COMPLETED', 'CANCELLED'].includes(b.status)
-        );
+        const acceptedRaw = bookingsWithDistance.filter(b => {
+            const isMatch = b.agentId && String(b.agentId) === String(agentId);
+            const isNotFinal = !['COMPLETED', 'CANCELLED'].includes(b.status);
+            return isMatch && isNotFinal;
+        });
 
-        console.log(`[AgentTasks] Found ${available.length} available, ${acceptedRaw.length} accepted`);
+        auditLog(`Found ${available.length} available, ${acceptedRaw.length} accepted_raw`);
 
         // 3. Completed: Assigned to THIS agent AND status is COMPLETED
         const completed = bookingsWithDistance.filter(b =>
@@ -849,10 +935,13 @@ export async function getAgentTasksAction(agentId: string, agentLat?: number, ag
 
         console.log(`[FORENSIC] Result for ${agentId}: ${available.length} avail, ${optimizedAccepted.length} acc, ${completed.length} comp, Today Earnings: ${todayEarnings}`);
 
+        const agent = await db.user.findUnique({ where: { id: agentId }, select: { isOnline: true } });
+
         return {
             available: available.sort((a, b) => a.distance - b.distance),
             accepted: optimizedAccepted,
             completed: completed,
+            isOnline: agent?.isOnline ?? false,
             summary: {
                 todayEarnings,
                 todayCompleted: todayCompleted.length,
@@ -1830,5 +1919,16 @@ export async function deleteLocationZoneAction(id: string) {
         return { success: true };
     } catch (e: any) {
         return { success: false, error: e.message };
+    }
+}
+
+export async function deleteReferralAction(id: string): Promise<{ success: boolean; error?: string }> {
+    if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+    try {
+        await db.referralConfig.delete({ where: { id } });
+        return { success: true };
+    } catch (error) {
+        console.error("Delete Referral Error:", error);
+        return { success: false, error: "Failed to delete referral configuration" };
     }
 }

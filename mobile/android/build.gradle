@@ -2,7 +2,13 @@
 
 buildscript {
   ext {
+    buildToolsVersion = "36.0.0"
+    minSdkVersion = 24
+    compileSdkVersion = 36
+    targetSdkVersion = 36
     ndkVersion = "26.1.10909125"
+    kotlinVersion = "2.1.20"
+    googlePlayServicesVersion = "18.0.0"
   }
   repositories {
     google()
@@ -16,12 +22,33 @@ buildscript {
 }
 
 allprojects {
-  repositories {
-    google()
-    mavenCentral()
-    maven { url 'https://www.jitpack.io' }
+    repositories {
+        google()
+        mavenCentral()
+        maven { url 'https://www.jitpack.io' }
+        maven { url "$rootDir/../node_modules/@react-native-async-storage/async-storage/android/local_repo" }
+    }
+}
+
+
+
+subprojects {
+  afterEvaluate { project ->
+    if (project.hasProperty('android')) {
+      project.android {
+        defaultConfig {
+          externalNativeBuild {
+            cmake {
+              cppFlags "-std=c++20", "-fexceptions", "-frtti"
+              arguments "-DANDROID_STL=c++_shared", "-DANDROID_CPP_FEATURES=rtti exceptions", "-DCMAKE_CXX_FLAGS=-frtti -fexceptions -IC:/tmp/RN_HEADERS"
+            }
+          }
+        }
+      }
+    }
   }
 }
 
-apply plugin: "expo-root-project"
+
+
 apply plugin: "com.facebook.react.rootproject"

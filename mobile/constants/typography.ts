@@ -1,10 +1,12 @@
+import { Platform } from 'react-native';
+
 export const Fonts = {
-  regular: 'Poppins_400Regular',
-  medium: 'Poppins_500Medium',
-  semiBold: 'Poppins_600SemiBold',
-  bold: 'Poppins_700Bold',
-  mono: 'SpaceMono', // sometimes used in standard RN templates
-  rounded: 'ui-rounded', // sometimes used in generic UI components
+  regular: Platform.select({ ios: 'System', android: 'sans-serif' }),
+  medium: Platform.select({ ios: 'System', android: 'sans-serif-medium' }),
+  semiBold: Platform.select({ ios: 'System', android: 'sans-serif-medium' }),
+  bold: Platform.select({ ios: 'System', android: 'sans-serif-bold' }),
+  mono: 'monospace',
+  rounded: 'sans-serif',
 };
 
 export const FontSizes = {

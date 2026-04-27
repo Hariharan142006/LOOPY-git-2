@@ -16,20 +16,24 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'User already exists' }, { status: 400 });
         }
 
+        const userData: any = {
+            name,
+            email,
+            password,
+            role,
+            walletBalance: 0.0
+        };
+
+        if (phone) userData.phone = phone;
+
         const user = await db.user.create({
-            data: {
-                name,
-                email,
-                password, // Simple text for demo, use hashing in production
-                role,
-                phone,
-                walletBalance: 0.0
-            }
+            data: userData
         });
 
         const token = signToken({ id: user.id, role: user.role });
 
         return NextResponse.json({
+            success: true,
             token,
             user: {
                 id: user.id,
@@ -38,8 +42,20 @@ export async function POST(request: Request) {
                 role: user.role
             }
         });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Signup API Error:", error);
-        return NextResponse.json({ error: 'Server error' }, { status: 500 });
+        
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || '';
+            if (target.includes('email')) {
+                return NextResponse.json({ error: 'Email already registered' }, { status: 400 });
+            }
+            if (target.includes('phone')) {
+                return NextResponse.json({ error: 'Phone number already registered' }, { status: 400 });
+            }
+            return NextResponse.json({ error: 'User already exists' }, { status: 400 });
+        }
+
+        return NextResponse.json({ error: 'Server error: ' + error.message }, { status: 500 });
     }
 }

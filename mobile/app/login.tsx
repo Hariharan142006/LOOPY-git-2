@@ -1,9 +1,9 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, Image, Dimensions } from 'react-native';
-import { useRouter, Link } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LoopyColors, Colors } from '../constants/colors';
 
@@ -15,7 +15,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
-  const router = useRouter();
+  const navigation = useNavigation<any>();
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -106,11 +106,9 @@ export default function LoginScreen() {
 
         <View style={styles.footer}>
           <Text style={styles.footerText}>New customer? </Text>
-          <Link href="/signup" asChild>
-            <TouchableOpacity>
-              <Text style={styles.footerLink}>Sign Up</Text>
-            </TouchableOpacity>
-          </Link>
+          <TouchableOpacity onPress={() => navigation.navigate('Signup')}>
+            <Text style={styles.footerLink}>Sign Up</Text>
+          </TouchableOpacity>
         </View>
       </Animated.View>
     </View>

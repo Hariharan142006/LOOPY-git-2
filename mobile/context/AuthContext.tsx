@@ -59,8 +59,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const updateUser = async (updates: Partial<User>) => {
-    if (!user) return;
-    const updatedUser = { ...user, ...updates };
+    const updatedUser = user ? { ...user, ...updates } : { ...updates } as User;
     await SecureStore.setItemAsync('userData', JSON.stringify(updatedUser));
     setUser(updatedUser);
   };

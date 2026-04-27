@@ -16,6 +16,7 @@ import {
     Clock
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { deleteReferralAction } from '@/app/actions';
 
 export default function ReferralManagementPage() {
     const [referrals, setReferrals] = useState<any[]>([]);
@@ -81,6 +82,21 @@ export default function ReferralManagementPage() {
     const toggleStatus = async (id: string, currentStatus: boolean) => {
         // Implementation for status toggle if API supports it
         toast.info("Status update coming soon");
+    };
+
+    const handleDelete = async (id: string) => {
+        if (!confirm("Are you sure you want to delete this referral configuration?")) return;
+        try {
+            const result = await deleteReferralAction(id);
+            if (result.success) {
+                toast.success("Referral deleted successfully");
+                fetchReferrals();
+            } else {
+                toast.error(result.error || "Failed to delete");
+            }
+        } catch (error) {
+            toast.error("An error occurred");
+        }
     };
 
     return (
@@ -192,7 +208,7 @@ export default function ReferralManagementPage() {
                                 <th className="p-6 text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/10">Reward</th>
                                 <th className="p-6 text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/10">Description</th>
                                 <th className="p-6 text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/10">Status</th>
-                                <th className="p-6 text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/10">Modified</th>
+                                <th className="p-6 text-xs font-black text-gray-500 uppercase tracking-widest border-b border-white/10 text-right">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/10">
@@ -242,11 +258,14 @@ export default function ReferralManagementPage() {
                                                 {r.isActive ? 'OPERATIONAL' : 'PAUSED'}
                                             </button>
                                         </td>
-                                        <td className="p-6">
-                                            <div className="flex items-center gap-2 text-gray-500 text-xs font-bold">
-                                                <Clock className="w-3 h-3" />
-                                                {new Date(r.updatedAt).toLocaleDateString()}
-                                            </div>
+                                        <td className="p-6 text-right">
+                                            <button 
+                                                onClick={() => handleDelete(r.id)}
+                                                className="p-2 text-gray-500 hover:text-red-500 hover:bg-red-500/10 rounded-lg transition-all"
+                                                title="Delete Referral"
+                                            >
+                                                <Trash2 className="w-4 h-4" />
+                                            </button>
                                         </td>
                                     </tr>
                                 ))

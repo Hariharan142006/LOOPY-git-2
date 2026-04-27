@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { LoopyColors } from '../../constants/colors';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { LanguageCode } from '../../constants/translations';
 
@@ -18,7 +18,7 @@ const LANGUAGES = [
 ];
 
 export default function LanguageSelectionScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user, updateUser } = useAuth();
   const [selectedLang, setSelectedLang] = useState<LanguageCode>((user?.preferredLanguage as LanguageCode) || 'en');
   const [loading, setLoading] = useState(false);
@@ -26,16 +26,23 @@ export default function LanguageSelectionScreen() {
   const handleContinue = async () => {
     setLoading(true);
     try {
-      const response = await api.post('/api/user/profile', {
-        preferredLanguage: selectedLang,
-      });
-
-      if (response.data.success) {
-        await updateUser({ preferredLanguage: selectedLang });
-        router.push('/onboarding/tutorial');
+      // If user is logged in, sync with backend
+      if (user) {
+        await api.post('/api/user/profile', {
+          preferredLanguage: selectedLang,
+        });
       }
+      
+      // Always update local state
+      await updateUser({ preferredLanguage: selectedLang });
+      
+      // Navigate to tutorial
+      navigation.navigate('OnboardingDetails');
     } catch (error: any) {
-      Alert.alert('Error', 'Failed to save language preference.');
+      console.log('Language save error:', error);
+      // Fallback: still update local and proceed
+      await updateUser({ preferredLanguage: selectedLang });
+      navigation.navigate('OnboardingTutorial');
     } finally {
       setLoading(false);
     }

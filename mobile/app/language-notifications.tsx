@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Switch, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors, Colors } from '../constants/colors';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
@@ -17,7 +17,7 @@ const LANGUAGES = [
 ];
 
 export default function LanguageNotificationsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user, updateUser: syncUser } = useAuth();
   const { t } = useTranslation();
   const [loading, setLoading] = useState(true);
@@ -72,7 +72,7 @@ export default function LanguageNotificationsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Language & Notifications</Text>

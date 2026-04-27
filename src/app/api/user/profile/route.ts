@@ -75,8 +75,21 @@ export async function POST(request: Request) {
 
         console.log("Profile Update Success");
         return NextResponse.json({ success: true, user: updatedUser });
-    } catch (error) {
+    } catch (error: any) {
         console.error("Profile Update API Error Details:", error);
-        return NextResponse.json({ error: 'Server error' }, { status: 500 });
+        
+        // Handle Prisma unique constraint error (e.g., phone already exists)
+        if (error.code === 'P2002') {
+            const target = error.meta?.target || [];
+            if (target.includes('phone')) {
+                return NextResponse.json({ error: 'This phone number is already in use by another account.' }, { status: 400 });
+            }
+            if (target.includes('email')) {
+                return NextResponse.json({ error: 'This email is already in use.' }, { status: 400 });
+            }
+            return NextResponse.json({ error: 'A user with these details already exists.' }, { status: 400 });
+        }
+
+        return NextResponse.json({ error: error.message || 'Server error' }, { status: 500 });
     }
 }

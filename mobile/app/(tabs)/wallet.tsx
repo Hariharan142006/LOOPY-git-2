@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator
 import Animated, { FadeInUp, FadeInDown, SlideInRight } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import QRCode from 'react-native-qrcode-svg';
 import { Colors, LoopyColors } from '../../constants/colors';
 import { Fonts, FontSizes } from '../../constants/typography';

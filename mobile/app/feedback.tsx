@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, ActivityIndicator, Alert, KeyboardAvoidingView, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors, Colors } from '../constants/colors';
 
 export default function FeedbackScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const [feedback, setFeedback] = useState('');
   const [loading, setLoading] = useState(false);
   const [rating, setRating] = useState(0);
@@ -19,14 +19,14 @@ export default function FeedbackScreen() {
     setTimeout(() => {
       setLoading(false);
       Alert.alert('Thank You!', 'Your feedback has been submitted successfully.');
-      router.back();
+      navigation.goBack();
     }, 1500);
   };
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Give Feedback</Text>

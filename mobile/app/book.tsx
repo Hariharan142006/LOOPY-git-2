@@ -1,16 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Alert, ActivityIndicator, Platform, Dimensions } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../utils/api';
 import { useAuth } from '../context/AuthContext';
-import * as Location from 'expo-location';
+import Geolocation from 'react-native-geolocation-service';
+import { PermissionsAndroid } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import Animated, { FadeInDown, FadeInUp, SlideInRight } from 'react-native-reanimated';
 import { LoopyColors, Colors } from '../constants/colors';
 import { useTranslation } from '../hooks/useTranslation';
 
 const { width } = Dimensions.get('window');
+
+
 
 const CAT_ICONS: Record<string, any> = {
   'Paper': 'document-text-outline',
@@ -25,7 +28,7 @@ const CAT_ICONS: Record<string, any> = {
 };
 
 export default function BookPickupScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
   const { t } = useTranslation();
   
@@ -87,30 +90,52 @@ export default function BookPickupScreen() {
   const handleDetectLocation = async () => {
     setIsLocating(true);
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
+      let hasPermission = false;
+      if (Platform.OS === 'ios') {
+          const auth = await Geolocation.requestAuthorization('whenInUse');
+          hasPermission = auth === 'granted';
+      } else {
+          const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          );
+          hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+      }
+
+      if (!hasPermission) {
         Alert.alert('Permission Denied', 'Allow location access to detect your address.');
         return;
       }
 
-      let location = await Location.getCurrentPositionAsync({});
-      let reverse = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
-      });
-
-      if (reverse.length > 0) {
-        const addr = reverse[0];
-        setSelectedAddress({
-          lat: location.coords.latitude,
-          lng: location.coords.longitude,
-          address: `${addr.name || ''}, ${addr.street || ''}, ${addr.city || ''}`.replace(/^, /, ''),
-          isNew: true
-        });
-      }
+      Geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          // Reverse geocode using Google Maps API since we removed expo-location
+          try {
+            const apiKey = "AIzaSyA-upRfXkloEWajYtkwN7V4sT7mOikfjbw";
+            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+              setSelectedAddress({
+                lat: latitude,
+                lng: longitude,
+                address: data.results[0].formatted_address,
+                isNew: true
+              });
+            }
+          } catch (geocoderError) {
+            console.log("Geocoding error", geocoderError);
+          }
+          setIsLocating(false);
+        },
+        (error) => {
+          Alert.alert(t('error'), t('could_not_detect_location'));
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
     } catch (e) {
       Alert.alert(t('error'), t('could_not_detect_location'));
-    } finally {
       setIsLocating(false);
     }
   };
@@ -140,7 +165,7 @@ export default function BookPickupScreen() {
 
       if (response.data.success) {
         Alert.alert(t('success'), t('scheduling_success'), [
-          { text: t('ok'), onPress: () => router.replace('/(tabs)' as any) }
+          { text: t('ok'), onPress: () => navigation.replace('Main') }
         ]);
       }
     } catch (error) {
@@ -278,7 +303,7 @@ export default function BookPickupScreen() {
                <Ionicons name="home-outline" size={18} color={selectedAddress?.id === addr.id ? '#fff' : LoopyColors.grey} />
             </View>
             <View style={{ flex: 1 }}>
-               <Text style={[styles.addressLabel, selectedAddress?.id === addr.id && { color: LoopyColors.green }]}>{t(addr.label.toLowerCase(), { defaultValue: addr.label })}</Text>
+               <Text style={[styles.addressLabel, selectedAddress?.id === addr.id && { color: LoopyColors.green }]}>{t((addr.label || 'Home').toLowerCase(), { defaultValue: addr.label || 'Home' })}</Text>
                <Text style={styles.addressSub} numberOfLines={1}>{addr.street}</Text>
             </View>
             {selectedAddress?.id === addr.id && <Ionicons name="radio-button-on" size={20} color={LoopyColors.green} />}
@@ -324,7 +349,7 @@ export default function BookPickupScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.closeBtn}>
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.closeBtn}>
           <Ionicons name="close" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('new_booking_header')}</Text>

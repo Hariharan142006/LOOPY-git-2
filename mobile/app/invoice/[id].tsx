@@ -1,16 +1,16 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Share, Platform } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, ActivityIndicator, Alert, Platform } from 'react-native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../../utils/api';
 import { LoopyColors, Colors } from '../../constants/colors';
-import * as Print from 'expo-print';
-import * as Sharing from 'expo-sharing';
+import RNPrint from 'react-native-print';
+import RNShare from 'react-native-share';
 import Animated, { FadeInUp } from 'react-native-reanimated';
 
 export default function InvoiceScreen() {
-    const { id } = useLocalSearchParams();
-    const router = useRouter();
+    const route = useRoute<any>(); const id = route.params?.id;
+    const navigation = useNavigation<any>();
     const [booking, setBooking] = useState<any>(null);
     const [loading, setLoading] = useState(true);
 
@@ -102,12 +102,7 @@ export default function InvoiceScreen() {
         `;
 
         try {
-            const { uri } = await Print.printToFileAsync({ html });
-            if (Platform.OS === 'ios') {
-                await Sharing.shareAsync(uri);
-            } else {
-                await Sharing.shareAsync(uri);
-            }
+            await RNPrint.print({ html });
         } catch (error) {
             Alert.alert('Error', 'Could not generate PDF');
         }
@@ -118,7 +113,7 @@ export default function InvoiceScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="close" size={24} color={LoopyColors.charcoal} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Digital Invoice</Text>

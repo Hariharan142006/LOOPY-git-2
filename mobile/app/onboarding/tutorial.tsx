@@ -1,10 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, ScrollView, NativeSyntheticEvent, NativeScrollEvent, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { LoopyColors } from '../../constants/colors';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { 
   FadeInDown, 
   FadeInUp, 
@@ -45,7 +45,7 @@ const SLIDES = [
 ];
 
 export default function TutorialScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { updateUser } = useAuth();
 
   useEffect(() => {
@@ -62,10 +62,7 @@ export default function TutorialScreen() {
         console.error('Onboarding completion error:', error);
         await updateUser({ onboarded: true });
       } finally {
-        router.replace({
-          pathname: '/(tabs)',
-          params: { startTutorial: 'true' }
-        });
+        navigation.replace('Main', { screen: 'index', params: { startTutorial: 'true' } });
       }
     };
     

@@ -1,12 +1,12 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors, Colors } from '../constants/colors';
 
 export default function LegalScreen() {
-  const router = useRouter();
-  const { type } = useLocalSearchParams();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>(); const {  type  } = route.params || {};
 
   const getContent = () => {
     switch (type) {
@@ -38,7 +38,7 @@ export default function LegalScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{title}</Text>

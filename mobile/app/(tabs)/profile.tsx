@@ -1,21 +1,21 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Image, StatusBar, ActivityIndicator } from 'react-native';
 import { useAuth } from '../../context/AuthContext';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import { api } from '../../utils/api';
 import Animated, { FadeInUp, FadeInDown, SlideInRight } from 'react-native-reanimated';
 import { Colors, LoopyColors } from '../../constants/colors';
 import { Fonts, FontSizes } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/layout';
 import { useTranslation } from '../../hooks/useTranslation';
-import * as ImagePicker from 'expo-image-picker';
+import { launchImageLibrary } from 'react-native-image-picker';
 
 
 export default function ProfileScreen() {
   const { user, logout, updateUser } = useAuth();
   const { t } = useTranslation();
-  const router = useRouter();
+  const navigation = useNavigation<any>();
 
   const [stats, setStats] = useState({ pickups: 0, recycled: 0, earned: 0 });
   const [loading, setLoading] = useState(true);
@@ -61,21 +61,13 @@ export default function ProfileScreen() {
 
   const handlePickImage = async () => {
     try {
-      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Gallery access is required to change profile picture');
-        return;
-      }
-
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ['images'],
-        allowsEditing: true,
-        aspect: [1, 1],
+      const result: any = await launchImageLibrary({
+        mediaType: 'photo',
         quality: 0.5,
-        base64: true,
+        includeBase64: true,
       });
 
-      if (!result.canceled && result.assets[0].base64) {
+      if (result.assets && result.assets.length > 0 && result.assets[0].base64) {
         setUploading(true);
         const base64Image = `data:image/jpeg;base64,${result.assets[0].base64}`;
         
@@ -106,7 +98,7 @@ export default function ProfileScreen() {
           style: 'destructive',
           onPress: async () => {
             await logout();
-            router.replace('/login' as any);
+            navigation.replace('Login');
           }
         }
       ]
@@ -202,7 +194,7 @@ export default function ProfileScreen() {
                 subValue={t('security_accessibility')}
                 color="#5b21b6" 
                 delay={500}
-                onPress={() => router.push('/account-settings' as any)} 
+                onPress={() => navigation.navigate('AccountSettings')} 
               />
               <MenuItem 
                 icon="person-outline" 
@@ -210,7 +202,7 @@ export default function ProfileScreen() {
                 subValue={t('personal_info')}
                 color="#15803d" 
                 delay={600}
-                onPress={() => router.push('/edit-profile' as any)} 
+                onPress={() => navigation.navigate('EditProfile')} 
               />
               <MenuItem 
                 icon="notifications-outline" 
@@ -218,7 +210,7 @@ export default function ProfileScreen() {
                 subValue={t('pref_alerts')}
                 color="#06b6d4" 
                 delay={700}
-                onPress={() => router.push('/language-notifications' as any)} 
+                onPress={() => navigation.navigate('LanguageNotifications')} 
               />
               <MenuItem 
                 icon="gift-outline" 
@@ -227,7 +219,7 @@ export default function ProfileScreen() {
                 color="#f97316" 
                 isHot={true}
                 delay={800}
-                onPress={() => router.push('/refer-earn' as any)} 
+                onPress={() => navigation.navigate('ReferEarn')} 
               />
            </View>
         </View>

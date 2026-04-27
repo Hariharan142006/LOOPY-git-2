@@ -14,13 +14,13 @@ import {
     Platform,
     StatusBar
 } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../../utils/api';
 import { LoopyColors } from '../../constants/colors';
 import { Fonts } from '../../constants/typography';
-import * as ImagePicker from 'expo-image-picker';
-import { CameraView, useCameraPermissions } from 'expo-camera';
+import { launchCamera } from 'react-native-image-picker';
+import { Camera, useCameraDevice, useCodeScanner, type CameraProps } from 'react-native-vision-camera';
 import Animated, { 
     FadeIn, 
     FadeInDown, 
@@ -45,8 +45,8 @@ const CATEGORY_ICONS: any = {
 };
 
 export default function WeighingScreen() {
-    const { id } = useLocalSearchParams();
-    const router = useRouter();
+    const route = useRoute<any>(); const id = route.params?.id;
+    const navigation = useNavigation<any>();
 
     const [booking, setBooking] = useState<any>(null);
     const [scrapItems, setScrapItems] = useState<any[]>([]);
@@ -54,8 +54,17 @@ export default function WeighingScreen() {
     const [photos, setPhotos] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
     const [showScanner, setShowScanner] = useState(false);
-    const [permission, requestPermission] = useCameraPermissions();
     const [paymentSuccess, setPaymentSuccess] = useState(false);
+    
+    const device = useCameraDevice('back');
+    const codeScanner = useCodeScanner({
+        codeTypes: ['qr'],
+        onCodeScanned: (codes: any[]) => {
+            if (codes.length > 0 && codes[0].value) {
+                handleBarCodeScanned({ data: codes[0].value });
+            }
+        }
+    });
 
     useEffect(() => {
         const load = async () => {
@@ -107,17 +116,13 @@ export default function WeighingScreen() {
     };
 
     const takePhoto = async () => {
-        const { status } = await ImagePicker.requestCameraPermissionsAsync();
-        if (status !== 'granted') {
-            Alert.alert('Permission needed', 'We need camera access to take proof of weights.');
-            return;
-        }
-        const result = await ImagePicker.launchCameraAsync({
-            allowsEditing: true,
-            aspect: [4, 3],
+        const result: any = await launchCamera({
+            mediaType: 'photo',
             quality: 0.6,
+            saveToPhotos: false
         });
-        if (!result.canceled) {
+        
+        if (result.assets && result.assets.length > 0) {
             setPhotos([...photos, result.assets[0].uri]);
         }
     };
@@ -150,7 +155,7 @@ export default function WeighingScreen() {
             });
             setPaymentSuccess(true);
             setTimeout(() => {
-                router.replace('/(tabs)');
+                navigation.replace('Main');
             }, 3500);
         } catch (e: any) {
             Alert.alert('Payment Failed', e.response?.data?.error || 'System error');
@@ -160,9 +165,13 @@ export default function WeighingScreen() {
     };
 
     const openScanner = async () => {
-        if (!permission?.granted) {
-            const res = await requestPermission();
-            if (!res.granted) return;
+        const status = await Camera.getCameraPermissionStatus();
+        if (status !== 'granted') {
+            const newStatus = await Camera.requestCameraPermission();
+            if (newStatus !== 'granted') {
+                Alert.alert('Permission needed', 'We need camera access to scan the wallet QR.');
+                return;
+            }
         }
         setShowScanner(true);
     };
@@ -186,11 +195,14 @@ export default function WeighingScreen() {
     if (showScanner) {
         return (
             <View style={styles.scannerContainer}>
-                <CameraView
-                  onBarcodeScanned={handleBarCodeScanned}
-                  barcodeScannerSettings={{ barcodeTypes: ["qr"] }}
-                  style={StyleSheet.absoluteFillObject}
-                />
+                {device && (
+                    <Camera
+                      style={StyleSheet.absoluteFill}
+                      device={device}
+                      isActive={true}
+                      codeScanner={codeScanner}
+                    />
+                )}
                 <View style={styles.scannerOverlay}>
                     <View style={styles.scannerHole} />
                     <Text style={styles.scannerText}>Scan Customer Wallet QR</Text>
@@ -215,7 +227,7 @@ export default function WeighingScreen() {
                     keyboardShouldPersistTaps="handled"
                 >
                     <View style={styles.header}>
-                        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                             <Ionicons name="chevron-back" size={24} color="#111827" />
                         </TouchableOpacity>
                         <Text style={styles.headerTitle}>Order Pipeline</Text>

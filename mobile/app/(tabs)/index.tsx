@@ -4,24 +4,25 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import Animated, { FadeInUp, FadeInRight, FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter, useFocusEffect } from 'expo-router';
-import * as Location from 'expo-location';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
+import Geolocation from 'react-native-geolocation-service';
+import { PermissionsAndroid, Platform } from 'react-native';
 import MapView, { Marker, PROVIDER_DEFAULT } from 'react-native-maps';
 import { LoopyColors } from '../../constants/colors';
 import { Fonts } from '../../constants/typography';
 import { Spacing, BorderRadius } from '../../constants/layout';
 import { useTranslation } from '../../hooks/useTranslation';
 import InAppTutorial, { TutorialStep } from '../../components/InAppTutorial';
-import { useLocalSearchParams } from 'expo-router';
+import { useRoute } from '@react-navigation/native';
 
 const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 export default function DashboardScreen() {
   const { user } = useAuth();
   const { t } = useTranslation();
-  const router = useRouter();
-  const params = useLocalSearchParams();
+  const navigation = useNavigation<any>();
+  const route = useRoute<any>(); const params = route.params || {};
   
   const [data, setData] = useState<any>(null);
   const [wallet, setWallet] = useState<any>(null);
@@ -130,30 +131,40 @@ export default function DashboardScreen() {
   );
 
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 15000);
+    const interval = setInterval(fetchData, 30000); // 30s polling
 
-    let locationSubscription: any;
+    let watchId: number | null = null;
     if (isAgent) {
         (async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            let hasPermission = false;
+            if (Platform.OS === 'ios') {
+                const auth = await Geolocation.requestAuthorization('whenInUse');
+                hasPermission = auth === 'granted';
+            } else {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+                );
+                hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+            }
 
-            locationSubscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.Balanced, distanceInterval: 50 },
-                (location) => {
-                    api.post('/api/agent/location', {
-                        lat: location.coords.latitude,
-                        lng: location.coords.longitude
-                    }).catch(console.log);
-                }
-            );
+            if (hasPermission) {
+                watchId = Geolocation.watchPosition(
+                    (location) => {
+                        api.post('/api/agent/location', {
+                            lat: location.coords.latitude,
+                            lng: location.coords.longitude
+                        }).catch(console.log);
+                    },
+                    (error) => console.log(error),
+                    { enableHighAccuracy: true, distanceFilter: 50, interval: 30000 }
+                );
+            }
         })();
     }
 
     return () => {
         clearInterval(interval);
-        if (locationSubscription) locationSubscription.remove();
+        if (watchId !== null) Geolocation.clearWatch(watchId);
     };
   }, [isAgent]);
 
@@ -191,7 +202,7 @@ export default function DashboardScreen() {
       >
         <View style={styles.agentHeaderTop}>
             <View style={{flexDirection: 'row', alignItems: 'center'}}>
-                <TouchableOpacity style={styles.agentAvatarBtn} onPress={() => router.push('/profile' as any)}>
+                <TouchableOpacity style={styles.agentAvatarBtn} onPress={() => navigation.navigate('Main', { screen: 'profile' })}>
                    <Image 
                       source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
                       style={{ width: '100%', height: '100%' }} 
@@ -199,10 +210,10 @@ export default function DashboardScreen() {
                 </TouchableOpacity>
                 <View style={{marginLeft: 12}}>
                     <Text style={styles.agentPortalText}>Agent Portal</Text>
-                    <Text style={styles.agentHelloText}>Hello, {user?.name?.split(' ')[0]}</Text>
+                    <Text style={styles.agentHelloText}>Hello, {user?.name ? user.name.split(' ')[0] : 'Agent'}</Text>
                 </View>
             </View>
-            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notifBtnGray}>
+            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notifBtnGray}>
                <Ionicons name="notifications" size={20} color="#6b7280" />
             </TouchableOpacity>
         </View>
@@ -233,7 +244,7 @@ export default function DashboardScreen() {
                  <Text style={styles.activeQueueTitle}>Active Queue</Text>
                  <Text style={styles.activeQueueSub}>Manage your current recycling tasks</Text>
                </View>
-               <TouchableOpacity onPress={() => router.push('/pickups' as any)} style={styles.viewMapBadgeGray}>
+               <TouchableOpacity onPress={() => navigation.navigate('Main', { screen: 'pickups' })} style={styles.viewMapBadgeGray}>
                     <Ionicons name="map" size={12} color={LoopyColors.charcoal} />
                     <Text style={styles.viewMapTextGray}>Map</Text>
                </TouchableOpacity>
@@ -246,14 +257,14 @@ export default function DashboardScreen() {
                </View>
            ) : (
                <Animated.View entering={FadeInUp.delay(400).springify().damping(14)} style={styles.mainActiveCard}>
-                   <TouchableOpacity activeOpacity={0.9} onPress={() => router.push('/pickups' as any)}>
+                   <TouchableOpacity activeOpacity={0.9} onPress={() => navigation.navigate('Main', { screen: 'pickups' })}>
                        <View style={styles.mapBackdrop}>
                            <MapView 
                                style={StyleSheet.absoluteFillObject}
                                provider={PROVIDER_DEFAULT}
                                initialRegion={{
-                                   latitude: data.accepted[0].pickupLat || 21.1458,
-                                   longitude: data.accepted[0].pickupLng || 79.0882,
+                                   latitude: data.accepted?.[0]?.pickupLat || 21.1458,
+                                   longitude: data.accepted?.[0]?.pickupLng || 79.0882,
                                    latitudeDelta: 0.02,
                                    longitudeDelta: 0.02,
                                }}
@@ -261,7 +272,9 @@ export default function DashboardScreen() {
                                zoomEnabled={false}
                                pitchEnabled={false}
                            >
-                               <Marker coordinate={{ latitude: data.accepted[0].pickupLat || 21.1458, longitude: data.accepted[0].pickupLng || 79.0882 }} />
+                               {data.accepted?.[0] && (
+                                 <Marker coordinate={{ latitude: data.accepted[0].pickupLat || 21.1458, longitude: data.accepted[0].pickupLng || 79.0882 }} />
+                               )}
                            </MapView>
                            <View style={styles.localPickupPin}>
                                <Ionicons name="location" size={14} color="#15803d" />
@@ -285,10 +298,9 @@ export default function DashboardScreen() {
                            <View style={styles.aqActionRow}>
                                <TouchableOpacity 
                                    style={styles.aqPrimaryBtn} 
-                                   onPress={() => router.push(
-                                      data.accepted[0].status === 'ARRIVED' 
-                                      ? `/weigh/${data.accepted[0].id}` as any 
-                                      : `/track-route/${data.accepted[0].id}` as any
+                                   onPress={() => navigation.navigate(
+                                      data.accepted[0].status === 'ARRIVED' ? 'Weigh' : 'TrackRoute', 
+                                      { id: data.accepted[0].id }
                                    )}>
                                    <Ionicons 
                                       name={
@@ -314,6 +326,41 @@ export default function DashboardScreen() {
                </Animated.View>
            )}
         </View>
+
+         {data?.available && data.available.length > 0 && (
+             <View style={styles.agentSection}>
+                <View style={styles.sectionHeaderRow}>
+                    <View>
+                        <Text style={styles.activeQueueTitle}>Available Pickups</Text>
+                        <Text style={styles.activeQueueSub}>Nearby tasks you can accept</Text>
+                    </View>
+                </View>
+                <View style={{ gap: 12, marginTop: 12 }}>
+                    {data.available.map((item: any, idx: number) => (
+                        <Animated.View key={item.id} entering={FadeInUp.delay(600 + (idx * 100))} style={styles.availableTaskCard}>
+                            <View style={styles.availableHeader}>
+                                <View style={styles.availableDistBadge}>
+                                    <Ionicons name="location" size={12} color="#15803d" />
+                                    <Text style={styles.availableDistText}>{(item.distance || 0).toFixed(1)} km away</Text>
+                                </View>
+                                <Text style={styles.availablePayout}>₹{(item.totalAmount || 0).toFixed(0)}</Text>
+                            </View>
+                            <Text style={styles.availableName}>{item.user?.name || 'Customer'}</Text>
+                            <Text style={styles.availableAddr} numberOfLines={1}>{item.address?.street || 'No address'}</Text>
+                            <View style={styles.availableFooter}>
+                                <View style={styles.availableTime}>
+                                    <Ionicons name="time-outline" size={14} color="#6b7280" />
+                                    <Text style={styles.availableTimeText}>{new Date(item.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
+                                </View>
+                                <TouchableOpacity style={styles.acceptMiniBtn} onPress={() => handleTaskAction(item.id, 'ACCEPT')}>
+                                    <Text style={styles.acceptMiniBtnText}>Accept Task</Text>
+                                </TouchableOpacity>
+                            </View>
+                        </Animated.View>
+                    ))}
+                </View>
+             </View>
+         )}
 
         {data?.accepted && data.accepted.length > 1 && (
             <Animated.View entering={FadeInUp.delay(500).springify().damping(14)} style={styles.agentSection}>
@@ -346,19 +393,18 @@ export default function DashboardScreen() {
       >
         <Animated.View entering={FadeInUp} style={styles.customerHeader}>
           <View style={styles.customerHeaderTopRow}>
-            <TouchableOpacity style={styles.avatarHolder} onPress={() => router.push('/profile' as any)}>
+            <TouchableOpacity style={styles.avatarHolder} onPress={() => navigation.navigate('Main', { screen: 'profile' })}>
                <Image 
                   source={user?.image ? { uri: user.image } : require('../../assets/images/user-placeholder.png')} 
                   style={styles.avatarMini} 
                />
             </TouchableOpacity>
-            <View style={{ flex: 1, paddingLeft: 12 }}>
-              <Text style={styles.welcomeBackText}>{t('greeting').toUpperCase()} BACK</Text>
-              <Text style={styles.greetingHeader}>{t('greeting')}, <Text style={styles.nameHeaderGreen}>{user?.name?.split(' ')[0] || 'User'}</Text></Text>
+            <View style={{ flex: 1, paddingLeft: 16 }}>
+              <Text style={styles.welcomeBackText}>HELLO BACK</Text>
+              <Text style={styles.greetingHeader}>Hello, <Text style={styles.nameHeaderTeal}>{user?.name?.split(' ')[0] || 'Sk'}</Text></Text>
             </View>
-            <TouchableOpacity onPress={() => router.push('/notifications')} style={styles.notifBtnGreen}>
-               <Ionicons name="notifications" size={20} color="#065f46" />
-               <View style={styles.notifDotGreen} />
+            <TouchableOpacity onPress={() => navigation.navigate('Notifications')} style={styles.notifBtnCircle}>
+               <Ionicons name="notifications" size={22} color="#059669" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -370,9 +416,9 @@ export default function DashboardScreen() {
             ref={walletRef}
            >
               <Text style={styles.walletLabel}>WALLET BALANCE</Text>
-              <Text style={styles.walletBalanceText}>₹{(wallet?.balance || 24035.60).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
-              <TouchableOpacity style={styles.cashOutBtnFull} onPress={() => router.push('/wallet' as any)}>
-                 <Ionicons name="cash-outline" size={16} color="#065f46" style={{ marginRight: 8 }} />
+              <Text style={styles.walletBalanceText}>₹{(wallet?.balance || 24097.60).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</Text>
+              <TouchableOpacity style={styles.cashOutBtnFull} onPress={() => navigation.navigate('Main', { screen: 'wallet' })}>
+                 <Ionicons name="cash" size={18} color="#065f46" style={{ marginRight: 8 }} />
                  <Text style={styles.cashOutBtnTextFull}>Cash Out</Text>
               </TouchableOpacity>
            </Animated.View>
@@ -383,8 +429,8 @@ export default function DashboardScreen() {
             ref={impactRef}
            >
               <View style={styles.impactIconBg}><Ionicons name="leaf" size={18} color="#fff" /></View>
-              <Text style={styles.impactValBig}>{wallet?.impact?.kgRecycled || '519.1'}</Text>
-              <Text style={styles.impactSubGreen}>KG RECYCLED TOTAL</Text>
+              <Text style={styles.impactValBig}>{wallet?.impact?.kgRecycled || '524.1'}</Text>
+              <Text style={styles.impactSubWhite}>KG RECYCLED TOTAL</Text>
               <Ionicons name="leaf" size={160} color="#15803d" style={styles.watermarkLeaf} />
            </Animated.View>
         </View>
@@ -392,16 +438,16 @@ export default function DashboardScreen() {
         <View style={styles.quickActionsContainer}>
            <Text style={styles.quickActionsTitle}>QUICK ACTIONS</Text>
            <View style={styles.actionsGridCenter}>
-             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/book' as any)} ref={bookRef}>
-                <View style={styles.actionIconCyan}><Ionicons name="car-outline" size={24} color="#fff" /></View>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => navigation.navigate('Book')} ref={bookRef}>
+                <View style={styles.actionCircleTeal}><Ionicons name="car" size={24} color="#fff" /></View>
                 <Text style={styles.actionTitleSmall}>Book Pickup</Text>
              </TouchableOpacity>
-             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/rates' as any)} ref={ratesRef}>
-                <View style={styles.actionIconBlue}><Ionicons name="stats-chart" size={24} color="#0f172a" /></View>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => navigation.navigate('Rates')} ref={ratesRef}>
+                <View style={styles.actionCircleBlue}><Ionicons name="bar-chart" size={24} color="#0f172a" /></View>
                 <Text style={styles.actionTitleSmall}>Daily Rates</Text>
              </TouchableOpacity>
-             <TouchableOpacity style={styles.actionItemBox} onPress={() => router.push('/history' as any)}>
-                <View style={styles.actionIconLightGreen}><Ionicons name="time" size={24} color="#065f46" /></View>
+             <TouchableOpacity style={styles.actionItemBox} onPress={() => navigation.navigate('History')}>
+                <View style={styles.actionCircleGreen}><Ionicons name="time" size={24} color="#065f46" /></View>
                 <Text style={styles.actionTitleSmall}>History</Text>
              </TouchableOpacity>
            </View>
@@ -413,7 +459,7 @@ export default function DashboardScreen() {
                   <Text style={styles.sectionHeaderSmall}>RECENT ACTIVITY</Text>
                   <Text style={styles.activitySubtitle}>Updated 2 mins ago</Text>
                </View>
-               <TouchableOpacity onPress={() => router.push('/history' as any)}>
+               <TouchableOpacity onPress={() => navigation.navigate('History')}>
                     <Text style={styles.seeAllTextGreen}>See All</Text>
                </TouchableOpacity>
            </View>
@@ -481,7 +527,7 @@ export default function DashboardScreen() {
         onComplete={() => {
           setShowTutorial(false);
           // Set a local flag so it doesn't show again on next refresh if params persist
-          router.setParams({ startTutorial: 'false' });
+          navigation.setParams({ startTutorial: 'false' });
         }}
       />
     </SafeAreaView>
@@ -494,40 +540,39 @@ const styles = StyleSheet.create({
   
   // Header Styles
   header: { paddingHorizontal: 24, paddingTop: 20, marginBottom: 16 },
-  customerHeader: { paddingHorizontal: 32, paddingTop: 20, marginBottom: 32 },
+  customerHeader: { paddingHorizontal: 32, paddingTop: 20, marginBottom: 24 },
   customerHeaderTopRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  avatarHolder: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#ffedd5', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarHolder: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#4b5563', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
   avatarMini: { width: '100%', height: '100%' },
-  welcomeBackText: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, textTransform: 'uppercase', letterSpacing: 0.5 },
-  greetingHeader: { fontSize: 24, fontFamily: Fonts.bold, color: LoopyColors.charcoal, letterSpacing: -0.8 },
-  nameHeaderGreen: { color: LoopyColors.success },
-  notifBtnGreen: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center' },
-  notifDotGreen: { position: 'absolute', top: 12, right: 10, width: 8, height: 8, borderRadius: 4, backgroundColor: '#065f46', borderWidth: 1.5, borderColor: '#dcfce7' },
+  welcomeBackText: { fontSize: 10, fontFamily: Fonts.bold, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: 1 },
+  greetingHeader: { fontSize: 28, fontFamily: Fonts.bold, color: '#111827', letterSpacing: -1 },
+  nameHeaderTeal: { color: '#0d9488' },
+  notifBtnCircle: { width: 44, height: 44, borderRadius: 22, backgroundColor: '#f0fdf4', alignItems: 'center', justifyContent: 'center' },
   subGreeting: { fontSize: 13, fontFamily: Fonts.semiBold, color: LoopyColors.grey, marginTop: 2, opacity: 0.8 },
 
   // Wallet
-  walletCardFull: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 4, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10 },
-  walletLabel: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, letterSpacing: 0.5 },
-  walletBalanceText: { fontSize: 36, fontFamily: Fonts.bold, color: LoopyColors.charcoal, marginVertical: 4, letterSpacing: -1 },
-  cashOutBtnFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#86efac', paddingVertical: 8, borderRadius: 100, marginTop: 8 },
-  cashOutBtnTextFull: { fontSize: 14, fontFamily: Fonts.bold, color: '#065f46' },
+  walletCardFull: { backgroundColor: '#fff', borderRadius: 32, padding: 24, elevation: 8, shadowColor: '#000', shadowOffset: { width: 0, height: 10 }, shadowOpacity: 0.05, shadowRadius: 20 },
+  walletLabel: { fontSize: 10, fontFamily: Fonts.bold, color: '#9ca3af', letterSpacing: 1 },
+  walletBalanceText: { fontSize: 40, fontFamily: Fonts.bold, color: '#111827', marginVertical: 8, letterSpacing: -1.5 },
+  cashOutBtnFull: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', backgroundColor: '#86efac', paddingVertical: 12, borderRadius: 100, marginTop: 12 },
+  cashOutBtnTextFull: { fontSize: 16, fontFamily: Fonts.bold, color: '#065f46' },
 
   // Impact
-  impactCardFull: { backgroundColor: '#166534', borderRadius: 24, padding: 20, position: 'relative', overflow: 'hidden' },
-  impactIconBg: { width: 36, height: 36, borderRadius: 18, backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center', marginBottom: 16 },
-  impactValBig: { fontSize: 24, fontFamily: Fonts.bold, color: '#fff' },
-  impactSubGreen: { fontSize: 10, fontFamily: Fonts.bold, color: '#86efac', marginTop: 2, letterSpacing: 1 },
-  watermarkLeaf: { position: 'absolute', right: -20, bottom: -40, opacity: 0.2 },
+  impactCardFull: { backgroundColor: '#14532d', borderRadius: 32, padding: 24, position: 'relative', overflow: 'hidden' },
+  impactIconBg: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.15)', alignItems: 'center', justifyContent: 'center', marginBottom: 20 },
+  impactValBig: { fontSize: 32, fontFamily: Fonts.bold, color: '#fff' },
+  impactSubWhite: { fontSize: 10, fontFamily: Fonts.bold, color: 'rgba(255,255,255,0.7)', marginTop: 4, letterSpacing: 1 },
+  watermarkLeaf: { position: 'absolute', right: -20, bottom: -40, opacity: 0.1 },
 
   // Actions
   quickActionsContainer: { paddingHorizontal: 32, marginBottom: 40 },
-  quickActionsTitle: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.grey, marginBottom: 16, letterSpacing: 0.5 },
+  quickActionsTitle: { fontSize: 10, fontFamily: Fonts.bold, color: '#9ca3af', marginBottom: 16, letterSpacing: 1 },
   actionsGridCenter: { flexDirection: 'row', justifyContent: 'space-between', gap: 8 },
-  actionItemBox: { flex: 1, backgroundColor: '#f9fafb', borderRadius: 20, paddingVertical: 16, alignItems: 'center' },
-  actionIconCyan: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#06b6d4', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionIconBlue: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionIconLightGreen: { width: 48, height: 48, borderRadius: 24, backgroundColor: '#bbf7d0', alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
-  actionTitleSmall: { fontSize: 10, fontFamily: Fonts.bold, color: LoopyColors.charcoal },
+  actionItemBox: { flex: 1, paddingVertical: 16, alignItems: 'center' },
+  actionCircleTeal: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#06b6d4', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionCircleBlue: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#e0f2fe', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionCircleGreen: { width: 56, height: 56, borderRadius: 28, backgroundColor: '#dcfce7', alignItems: 'center', justifyContent: 'center', marginBottom: 12 },
+  actionTitleSmall: { fontSize: 11, fontFamily: Fonts.bold, color: '#111827' },
 
   // Activity
   activitySectionCustomer: { paddingHorizontal: 32, marginBottom: 40 },
@@ -606,4 +651,18 @@ const styles = StyleSheet.create({
   upcomingPillInfo: { flex: 1, marginLeft: 16 },
   upName: { fontSize: 14, fontFamily: Fonts.bold, color: '#111827' },
   upDetails: { fontSize: 12, fontFamily: Fonts.medium, color: '#6b7280', marginTop: 4 },
+
+  // Available Tasks
+  availableTaskCard: { backgroundColor: '#fff', borderRadius: 24, padding: 20, elevation: 2, shadowColor: '#000', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.05, shadowRadius: 10, borderLeftWidth: 4, borderLeftColor: '#15803d' },
+  availableHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  availableDistBadge: { flexDirection: 'row', alignItems: 'center', gap: 4, backgroundColor: '#f0fdf4', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 },
+  availableDistText: { fontSize: 11, fontFamily: Fonts.bold, color: '#166534' },
+  availablePayout: { fontSize: 18, fontFamily: Fonts.bold, color: '#111827' },
+  availableName: { fontSize: 16, fontFamily: Fonts.bold, color: '#111827', marginBottom: 4 },
+  availableAddr: { fontSize: 12, fontFamily: Fonts.medium, color: '#6b7280', marginBottom: 16 },
+  availableFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  availableTime: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  availableTimeText: { fontSize: 12, fontFamily: Fonts.medium, color: '#6b7280' },
+  acceptMiniBtn: { backgroundColor: '#111827', paddingHorizontal: 16, paddingVertical: 8, borderRadius: 12 },
+  acceptMiniBtnText: { color: '#fff', fontSize: 12, fontFamily: Fonts.bold },
 });

@@ -65,6 +65,7 @@ export function AgentsTable({ agents, onViewAgent }: AgentsTableProps) {
                             <TableHead className="text-gray-400">Name</TableHead>
                             <TableHead className="text-gray-400">Contact</TableHead>
                             <TableHead className="text-gray-400">Role</TableHead>
+                            <TableHead className="text-gray-400">Vehicle</TableHead>
                             <TableHead className="text-gray-400">Status</TableHead>
                             <TableHead className="text-right text-gray-400">Action</TableHead>
                         </TableRow>
@@ -101,6 +102,18 @@ export function AgentsTable({ agents, onViewAgent }: AgentsTableProps) {
                                         <Badge variant="outline" className="border-green-500/50 text-green-400 bg-green-500/10">
                                             {agent.role}
                                         </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="text-xs text-gray-400">
+                                            {(agent as any).assignedVehicles?.[0] ? (
+                                                <>
+                                                    <div className="text-white font-bold">{(agent as any).assignedVehicles[0].name}</div>
+                                                    <div>{(agent as any).assignedVehicles[0].licensePlate}</div>
+                                                </>
+                                            ) : (
+                                                <span className="opacity-30">No Vehicle</span>
+                                            )}
+                                        </div>
                                     </TableCell>
                                     <TableCell>
                                         <div className="flex flex-col gap-1 items-start">

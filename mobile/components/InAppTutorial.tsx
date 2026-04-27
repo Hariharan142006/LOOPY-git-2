@@ -8,7 +8,7 @@ import Animated, {
   withSpring,
   withTiming
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors } from '../constants/colors';
 import { Fonts } from '../constants/typography';
 
@@ -51,10 +51,10 @@ export default function InAppTutorial({ isVisible, steps, onComplete }: Props) {
 
   useEffect(() => {
     if (isVisible && step && isReady) {
-      holeX.value = withSpring(step.position.x - 10, { damping: 15 });
-      holeY.value = withSpring(step.position.y - 10, { damping: 15 });
-      holeW.value = withSpring(step.position.width + 20, { damping: 15 });
-      holeH.value = withSpring(step.position.height + 20, { damping: 15 });
+      holeX.value = step.position.x - 10;
+      holeY.value = step.position.y - 10;
+      holeW.value = step.position.width + 20;
+      holeH.value = step.position.height + 20;
     }
   }, [currentStep, isVisible, isReady, step?.position]);
 
@@ -159,10 +159,7 @@ const styles = StyleSheet.create({
   },
   spotlight: {
     position: 'absolute',
-    borderWidth: 2,
-    borderColor: '#89c541',
     borderRadius: 16,
-    borderStyle: 'dashed',
   },
   tipBox: {
     position: 'absolute',

@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, ScrollView, ActivityIndicator, Alert } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../../context/AuthContext';
 import { api } from '../../utils/api';
 import { LoopyColors } from '../../constants/colors';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import Animated, { FadeInDown, FadeInUp } from 'react-native-reanimated';
 import { useTranslation } from '../../hooks/useTranslation';
 
 export default function PersonalDetailsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user, updateUser, logout } = useAuth();
   const { t } = useTranslation();
   
@@ -37,7 +37,11 @@ export default function PersonalDetailsScreen() {
 
       if (response.data.success) {
         await updateUser({ name, phone });
-        router.push('/onboarding/language');
+        if (user?.role === 'AGENT') {
+          navigation.navigate('OnboardingFleet');
+        } else {
+          navigation.navigate('OnboardingTutorial');
+        }
       }
     } catch (error: any) {
       const message = error.response?.data?.error || error.message || 'Failed to save details. Please try again.';

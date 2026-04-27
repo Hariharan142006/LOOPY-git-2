@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, FlatList, Platform, StatusBar, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../../utils/api';
-import * as Location from 'expo-location';
-import { useRouter, useFocusEffect } from 'expo-router';
+import Geolocation from 'react-native-geolocation-service';
+import { PermissionsAndroid } from 'react-native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import Animated, { FadeInRight, FadeInUp } from 'react-native-reanimated';
 import { LoopyColors } from '../../constants/colors';
 import { FontSizes, Fonts } from '../../constants/typography';
@@ -12,7 +13,7 @@ import { Spacing, BorderRadius } from '../../constants/layout';
 import SwipeButton from '../../components/SwipeButton';
 
 export default function AgentPickupsTimeline() {
-    const router = useRouter();
+    const navigation = useNavigation<any>();
     const [tasks, setTasks] = useState<any[]>([]);
     const [summary, setSummary] = useState<any>(null);
     const [agentLoc, setAgentLoc] = useState<any>(null);
@@ -20,22 +21,49 @@ export default function AgentPickupsTimeline() {
     const [isOnline, setIsOnline] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
 
+    const requestLocationPermission = async () => {
+        if (Platform.OS === 'ios') {
+            const auth = await Geolocation.requestAuthorization('whenInUse');
+            return auth === 'granted';
+        }
+        if (Platform.OS === 'android') {
+            const granted = await PermissionsAndroid.request(
+                PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+            );
+            return granted === PermissionsAndroid.RESULTS.GRANTED;
+        }
+        return false;
+    };
+
     const fetchData = async () => {
         try {
-            // Speed optimization: Try last known position first to avoid GPS lock delay
-            let loc = await Location.getLastKnownPositionAsync({});
-            if (!loc) {
-                loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+            const hasPermission = await requestLocationPermission();
+            let coords = { latitude: 0, longitude: 0 };
+
+            if (hasPermission) {
+                await new Promise((resolve) => {
+                    Geolocation.getCurrentPosition(
+                        (position: any) => {
+                            coords = position.coords;
+                            setAgentLoc(position.coords);
+                            resolve(true);
+                        },
+                        (error: any) => {
+                            console.log(error.code, error.message);
+                            resolve(false);
+                        },
+                        { enableHighAccuracy: true, timeout: 15000, maximumAge: 10000 }
+                    );
+                });
             }
             
-            if (loc) setAgentLoc(loc.coords);
-            
             const res = await api.post('/api/agent/tasks', {
-                lat: loc?.coords.latitude || 0,
-                lng: loc?.coords.longitude || 0
+                lat: coords.latitude,
+                lng: coords.longitude
             });
             setTasks(res.data.accepted || []);
             setSummary(res.data.summary || null);
+            setIsOnline(res.data.isOnline ?? true);
         } catch (e) {
             console.log('Pickups Fetch Error', e);
         } finally {
@@ -151,9 +179,9 @@ export default function AgentPickupsTimeline() {
                                     }
                                     onSwipeComplete={() => {
                                         if (item.status === 'ARRIVED') {
-                                            router.push(`/weigh/${item.id}` as any);
+                                            navigation.navigate('Weigh', { id: item.id } as any);
                                         } else {
-                                            router.push(`/track-route/${item.id}` as any);
+                                            navigation.navigate('TrackRoute', { id: item.id } as any);
                                         }
                                     }}
                                     color={LoopyColors.charcoal}

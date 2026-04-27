@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, TextInput } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../utils/api';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeInUp, FadeInDown, FadeInRight } from 'react-native-reanimated';
 import { LoopyColors } from '../constants/colors';
 import { useTranslation } from '../hooks/useTranslation';
@@ -29,7 +29,7 @@ const MARKET_HIGHLIGHTS = [
 ];
 
 export default function RatesScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [categories, setCategories] = useState<any>([]);
   const [activeCategory, setActiveCategory] = useState<any>(null);
@@ -79,7 +79,7 @@ export default function RatesScreen() {
       
       {/* Dynamic Header */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.headerBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="menu-outline" size={26} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Market Prime</Text>

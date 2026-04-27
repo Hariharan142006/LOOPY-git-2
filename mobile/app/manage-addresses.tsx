@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, Alert, TextInput, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useNavigation } from '@react-navigation/native';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import Geolocation from 'react-native-geolocation-service';
+import { PermissionsAndroid } from 'react-native';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function ManageAddressesScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [addresses, setAddresses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -39,24 +40,58 @@ export default function ManageAddressesScreen() {
   const handleDetect = async () => {
     setIsLocating(true);
     try {
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') return;
-
-      let location = await Location.getCurrentPositionAsync({});
-      let reverse = await Location.reverseGeocodeAsync({
-        latitude: location.coords.latitude,
-        longitude: location.coords.longitude
-      });
-
-      if (reverse.length > 0) {
-        const addr = reverse[0];
-        setStreet(addr.street || addr.name || '');
-        setCity(addr.city || '');
-        setZip(addr.postalCode || '');
+      let hasPermission = false;
+      if (Platform.OS === 'ios') {
+          const auth = await Geolocation.requestAuthorization('whenInUse');
+          hasPermission = auth === 'granted';
+      } else {
+          const granted = await PermissionsAndroid.request(
+              PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+          );
+          hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
       }
+
+      if (!hasPermission) return;
+
+      Geolocation.getCurrentPosition(
+        async (position) => {
+          const { latitude, longitude } = position.coords;
+          try {
+            const apiKey = "AIzaSyA-upRfXkloEWajYtkwN7V4sT7mOikfjbw";
+            const response = await fetch(`https://maps.googleapis.com/maps/api/geocode/json?latlng=${latitude},${longitude}&key=${apiKey}`);
+            const data = await response.json();
+            
+            if (data.results && data.results.length > 0) {
+                const addr = data.results[0];
+                const components = addr.address_components;
+                
+                let streetName = "";
+                let cityVal = "";
+                let postalCode = "";
+
+                components.forEach((c: any) => {
+                    if (c.types.includes('route')) streetName = c.long_name;
+                    if (c.types.includes('locality')) cityVal = c.long_name;
+                    if (c.types.includes('postal_code')) postalCode = c.long_name;
+                });
+
+                setStreet(streetName || addr.formatted_address.split(',')[0]);
+                setCity(cityVal);
+                setZip(postalCode);
+            }
+          } catch (e) {
+            console.log("Geocoding error", e);
+          }
+          setIsLocating(false);
+        },
+        (error) => {
+          Alert.alert(t('error'), t('could_not_detect_location'));
+          setIsLocating(false);
+        },
+        { enableHighAccuracy: true, timeout: 15000 }
+      );
     } catch (e) {
       Alert.alert(t('error'), t('could_not_detect_location'));
-    } finally {
       setIsLocating(false);
     }
   };
@@ -113,7 +148,7 @@ export default function ManageAddressesScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('addresses_header')}</Text>

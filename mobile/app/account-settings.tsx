@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Alert, Modal, TextInput, Switch, ActivityIndicator } from 'react-native';
-import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { useNavigation } from '@react-navigation/native';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors, Colors } from '../constants/colors';
-import * as LocalAuthentication from 'expo-local-authentication';
+import TouchID from 'react-native-touch-id';
 import { api } from '../utils/api';
 import { useTranslation } from '../hooks/useTranslation';
 
 export default function AccountSettingsScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { t } = useTranslation();
   const [profile, setProfile] = useState<any>(null);
   const [loading, setLoading] = useState(true);
@@ -36,19 +36,14 @@ export default function AccountSettingsScreen() {
   const toggleBiometrics = async (value: boolean) => {
     try {
       if (value) {
-        const hasHardware = await LocalAuthentication.hasHardwareAsync();
-        const isEnrolled = await LocalAuthentication.isEnrolledAsync();
-        
-        if (!hasHardware || !isEnrolled) {
+        try {
+          await TouchID.isSupported();
+        } catch (e) {
           Alert.alert("Not Available", "Biometric authentication is not set up on this device.");
           return;
         }
 
-        const result = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Enable Biometrics',
-        });
-
-        if (!result.success) return;
+        await TouchID.authenticate('Enable Biometrics');
       }
 
       await api.patch('/api/user/settings', { biometricsEnabled: value });
@@ -111,7 +106,7 @@ export default function AccountSettingsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={24} color={LoopyColors.charcoal} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>{t('account_settings_header')}</Text>

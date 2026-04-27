@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, TextInput, ActivityIndicator, Image } from 'react-native';
 import { useAuth } from '../context/AuthContext';
 import { api } from '../utils/api';
-import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import Ionicons from 'react-native-vector-icons/Ionicons';
+import { useNavigation } from '@react-navigation/native';
 import Animated, { FadeInUp, FadeInDown, Layout } from 'react-native-reanimated';
 import { LoopyColors, Colors } from '../constants/colors';
 import { Fonts } from '../constants/typography';
 
 export default function HistoryScreen() {
-  const router = useRouter();
+  const navigation = useNavigation<any>();
   const { user } = useAuth();
   const [history, setHistory] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
@@ -92,7 +92,7 @@ export default function HistoryScreen() {
         layout={Layout.springify()}
         style={styles.card}
       >
-        <TouchableOpacity activeOpacity={0.8} onPress={() => router.push(`/track/${item.id}` as any)}>
+        <TouchableOpacity activeOpacity={0.8} onPress={() => navigation.navigate('Track', { id: item.id } as any)}>
            <View style={styles.cardHeader}>
               <View style={[styles.iconBox, { backgroundColor: meta.bg }]}>
                  <Ionicons name={meta.icon as any} size={22} color={meta.color} />
@@ -138,7 +138,7 @@ export default function HistoryScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.back()}>
           <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <View style={styles.searchContainer}>

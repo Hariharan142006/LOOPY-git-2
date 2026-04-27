@@ -30,7 +30,7 @@ export async function GET(request: Request) {
         // Return structured data
         return NextResponse.json(result);
     } catch (error) {
-        console.error("Agent Tasks GET Error:", error);
+        auditLog(`Agent Tasks GET Error for ID ${session?.id}: ${error instanceof Error ? error.message : 'Unknown error'}`);
         return NextResponse.json({ error: 'Server error' }, { status: 500 });
     }
 }

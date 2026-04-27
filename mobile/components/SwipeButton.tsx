@@ -7,7 +7,7 @@ import Animated, {
     withSpring,
     runOnJS
 } from 'react-native-reanimated';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { LoopyColors } from '../constants/colors';
 import { FontSizes } from '../constants/typography';
 import { useIsFocused } from '@react-navigation/native';

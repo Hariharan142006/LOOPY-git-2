@@ -1,16 +1,17 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Linking, Alert } from 'react-native';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import MapView, { Marker, Polyline, PROVIDER_GOOGLE } from 'react-native-maps';
-import { Ionicons } from '@expo/vector-icons';
+import Ionicons from 'react-native-vector-icons/Ionicons';
 import { api } from '../../utils/api';
-import * as Location from 'expo-location';
+import Geolocation from 'react-native-geolocation-service';
+import { PermissionsAndroid, Platform } from 'react-native';
 import SwipeButton from '../../components/SwipeButton';
 import { LoopyColors } from '../../constants/colors';
 
 export default function AgentRouteScreen() {
-    const { id } = useLocalSearchParams();
-    const router = useRouter();
+    const route = useRoute<any>(); const id = route.params?.id;
+    const navigation = useNavigation<any>();
     const mapRef = useRef<MapView>(null);
 
     const [booking, setBooking] = useState<any>(null);
@@ -63,38 +64,49 @@ export default function AgentRouteScreen() {
     useEffect(() => {
         fetchTaskData();
         
-        let subscription: any;
+        let watchId: number | null = null;
         (async () => {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status !== 'granted') return;
+            let hasPermission = false;
+            if (Platform.OS === 'ios') {
+                const auth = await Geolocation.requestAuthorization('whenInUse');
+                hasPermission = auth === 'granted';
+            } else {
+                const granted = await PermissionsAndroid.request(
+                    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION
+                );
+                hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+            }
 
-            subscription = await Location.watchPositionAsync(
-                { accuracy: Location.Accuracy.High, distanceInterval: 5 },
-                (loc) => {
-                    setAgentLocation(loc.coords);
-                    
-                    // Share live location if ride started and not yet arrived
-                    if (rideStarted && booking?.status === 'ONEWAY') {
-                        api.post('/api/agent/location', { lat: loc.coords.latitude, lng: loc.coords.longitude }).catch(() => {});
-                    }
-
-                    if (booking) {
-                        const d = calculateDistance(loc.coords.latitude, loc.coords.longitude, booking.pickupLat, booking.pickupLng);
-                        setDistance(d);
+            if (hasPermission) {
+                watchId = Geolocation.watchPosition(
+                    (loc) => {
+                        setAgentLocation(loc.coords);
                         
-                        // 2m Proximity Alert
-                        if (d < 2 && !notified) {
-                            setNotified(true);
-                            api.post(`/api/bookings/${id}/proximity`, { distance: d }).catch(console.log);
-                            Alert.alert("Near Target", "You are within 2m of the customer.");
+                        // Share live location if ride started and not yet arrived
+                        if (rideStarted && booking?.status === 'ONEWAY') {
+                            api.post('/api/agent/location', { lat: loc.coords.latitude, lng: loc.coords.longitude }).catch(() => {});
                         }
-                    }
-                }
-            );
+
+                        if (booking) {
+                            const d = calculateDistance(loc.coords.latitude, loc.coords.longitude, booking.pickupLat, booking.pickupLng);
+                            setDistance(d);
+                            
+                            // 2m Proximity Alert
+                            if (d < 2 && !notified) {
+                                setNotified(true);
+                                api.post(`/api/bookings/${id}/proximity`, { distance: d }).catch(console.log);
+                                Alert.alert("Near Target", "You are within 2m of the customer.");
+                            }
+                        }
+                    },
+                    (error) => console.log(error),
+                    { enableHighAccuracy: true, distanceFilter: 5 }
+                );
+            }
         })();
 
         return () => {
-            if (subscription) subscription.remove();
+            if (watchId !== null) Geolocation.clearWatch(watchId);
         };
     }, [booking, notified, rideStarted]);
 
@@ -108,7 +120,7 @@ export default function AgentRouteScreen() {
     return (
         <View style={styles.container}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
                     <Ionicons name="arrow-back" size={24} color="#111827" />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Route to Pickup</Text>
@@ -186,7 +198,7 @@ export default function AgentRouteScreen() {
                             color="#10b981"
                             onSwipeComplete={async () => {
                                 await api.post('/api/agent/tasks/update', { bookingId: id, action: 'STATUS', status: 'ARRIVED' });
-                                router.push(`/weigh/${id}` as any);
+                                navigation.navigate('Weigh', { id: id } as any);
                             }}
                         />
                     </View>

@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { getAuthSession } from '@/lib/auth';
+import { findNearestAgent } from '@/app/actions';
 
 export async function POST(request: Request) {
     try {
@@ -52,6 +53,7 @@ export async function POST(request: Request) {
 
         // Create the booking
         const booking = await db.booking.create({
+            // ... (keep existing data)
             data: {
                 userId: session.id,
                 addressId,
@@ -70,6 +72,33 @@ export async function POST(request: Request) {
                 }
             }
         });
+
+        // AUTO-ASSIGNMENT LOGIC
+        try {
+            const fs = require('fs');
+            const path = require('path');
+            const logFile = path.join(process.cwd(), 'auto_assign.log');
+            const auditLog = (msg: string) => fs.appendFileSync(logFile, `[${new Date().toISOString()}] ${msg}\n`);
+
+            auditLog(`Starting AutoAssign for booking ${booking.id} at ${location.lat}, ${location.lng}`);
+            
+            // Find nearest online agent within 50km
+            const nearestAgentId = await findNearestAgent(location.lat, location.lng, 50);
+            if (nearestAgentId) {
+                await db.booking.update({
+                    where: { id: booking.id },
+                    data: {
+                        agentId: nearestAgentId,
+                        status: 'ASSIGNED'
+                    }
+                });
+                auditLog(`Success: Assigned to agent ${nearestAgentId}`);
+            } else {
+                auditLog(`Failure: No suitable agent found.`);
+            }
+        } catch (assignError) {
+            console.error("[AutoAssign] Failed:", assignError);
+        }
 
         return NextResponse.json({ success: true, bookingId: booking.id });
     } catch (error) {
